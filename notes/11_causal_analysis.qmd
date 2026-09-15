@@ -1,0 +1,1444 @@
+---
+title: "Causal analysis"
+stem: 11_causal_analysis
+chapter: 11
+format:
+  html:
+    code-tools: true
+  ipynb: default
+---
+
+::: {.callout-tip icon=false}
+## Chapter resources
+[Slides (PDF)](../files/slides/11_causal_analysis.pdf){.btn .btn-sm .btn-primary}
+[Open in Colab](https://colab.research.google.com/github/antoninofurnari/fad-2627/blob/main/notes/11_causal_analysis.ipynb){.btn .btn-sm .btn-outline-primary}
+[Download PDF](../files/chapters/11_causal_analysis.pdf){.btn .btn-sm .btn-outline-primary .btn-chapter-pdf}
+[Practice quiz](../quiz.html?bank=11){.btn .btn-sm .btn-outline-primary}
+:::
+
+```{python}
+#| echo: false
+# Datasets are served by the site itself, so the same code runs here, on a
+# local clone and on Colab. See site/data/MANIFEST.yml.
+from pathlib import Path
+DATA = "../data/" if Path("../data").is_dir() else "https://antoninofurnari.github.io/fad-2627/data/"
+```
+We have seen how to characterize the relationship between two or more variables with correlation and linear regression. We also said that **correlation is not causation**, meaning that, if we observe a correlation between two variables, that does not necessarily imply a cause-effect relationship between them. However, in many cases, it is still useful (or required!) to establish a cause-effect relationship (or lack thereof) between two variables. Consider the following examples:
+
+* We assess that **a given disease is more frequent among smokers**. Is this just a correlation or is there a cause-effect relationship? If a smoker stops smoking, will their risk to get the disease be reduced?
+* **We develop a new drug** and assess that people taking this drug are less likely to get disease X. Is this just a correlation or is there a cause-effect relationship? This is important, as people should take the drug only if benefits are clear.
+* **A large company founds that product sites located in the geographical areas close to the sea are more productive than the others**. Is this just a correlation or is it a cause-effect relationship? Shall we move all sites closer to the sea?
+
+Luckily, the field of **causal analysis** has, over the years, developed a set of tools which allow to answer those questions.
+
+The goal of this lecture is to provide a primer of causal analysis, introducing the main concepts and discussing some techniques which can be applied in some simple cases.
+
+
+## Tutoring vs Performance
+
+Let us consider an example: 
+
+> A school wants to see if a new teaching method is effective. To do so, they ask $50$ students if they want to **voluntarily enroll a tutoring program**. After one year, they measure the average performance of students who participated in the programme and compare it to those of students who did not participate in the programme. 
+
+We obtain the following data:
+
+```{python}
+#| echo: false
+import numpy as np
+import pandas as pd
+np.random.seed(42)
+n_students = 200
+interest = np.random.uniform(1,5,n_students).round()
+tutoring = (((interest-np.median(interest)) + np.random.normal(0,3,n_students))>0).astype(int)
+performance = 30+2.5*(3*interest + np.random.normal(10,3,n_students) + 0.1*tutoring)
+performance[performance<0] = 0
+performance[performance>100] = 100
+
+students1 = pd.DataFrame({
+    'tutoring': tutoring,
+    'performance' : performance
+})
+
+students2 = pd.DataFrame({
+    'tutoring': tutoring,
+    'performance' : performance,
+    'average_study_hours': (interest/5)*8+np.random.normal(0,0.1,len(interest))
+})
+
+students3 = pd.DataFrame({
+    'tutoring': tutoring,
+    'performance' : performance,
+    'interest': interest,
+})
+
+students1
+```
+
+We want to understand if `tutoring` has an effect on `performance`. Let us show some boxplots:
+
+```{python}
+#| echo: false
+import seaborn as sns
+from matplotlib import pyplot as plt
+plt.figure(figsize=(4,6))
+sns.boxplot(x='tutoring', y='performance', data=students1)
+plt.grid()
+plt.ylim([50,100])
+plt.show()
+```
+
+The comparison tell us `tutoring` seems to significantly improve performance! However, we took a statistics class, so we want to check if everything is statistically significant. We add a **notch** to each plot. The notch will highlight the confidence intervals for the estimation of the median value:
+
+```{python}
+#| echo: false
+import seaborn as sns
+from matplotlib import pyplot as plt
+plt.figure(figsize=(4,6))
+sns.boxplot(x='tutoring', y='performance', data=students1, notch=True)
+plt.grid()
+plt.ylim([50,100])
+plt.show()
+```
+
+Since the notches do not intersect, there is no overlap between the confidence intervals for a C.L. of $95\%$, hence it is very unlikely that the two median values are very close to each other. The difference seem to be statistically relevant. If we want to be very sure, we can **compute a two-sample t-Test** to ensure that the mean values of the two samples actually are distinct. 
+
+The null hypothesis will be that the two samples have the same mean. If we reject this hypothesis, then the two means are distinct. We obtain the following test statistic and p-value:
+
+```{python}
+#| echo: false
+from scipy.stats import ttest_ind
+t_stat, p_value = ttest_ind(students1[students1['tutoring']==1]['performance'], students1[students1['tutoring']==0]['performance'])
+print(f'T-test results - T-statistic: {t_stat}, p-value: {p_value}')
+```
+
+It looks like the tutoring program is a great success!
+
+## Measuring Causation - Potential Outcomes (Counterfactuals)
+The comparison above seems to be clear: we should enroll everybody in the tutoring program! But we also know that **correlation is not (necessarily) causation!**. We are seeing a correlation here - is it also causation? Of course, we want to know whether it is worth to extend the tutoring program or not!
+
+To be able to truly assess a causal relationship between the two variables, ideally, we would like to **take the same student and let them attend and not attend the tutoring program at the same time, so that then we can compare, for the same student, the effect of tutoring alone.** This is of course impossible to do and even if we could it would be unethical. Can we ask a student not to follow a program which we suspect will harm their performance? Even if we ask the same student to first follow the tutoring, then stop, the student "before" and "after" is not the same student after all, so the two values will never be fully comparable.
+
+We will now **enter the realm of potential outcomes**. In practice, we ask ourselves questions such as **"what if this student did not take the tutoring?"**. Let's see some notation first. We will define two variables:
+
+* $T_i$: a "treatment" value indicating whether the observation $i$ (student $i$) took the treatment (i.e., attended the tutoring) or not. Here we use the standard terminology of causal inference which uses the word "treatment" as in health-related sciences. We will assume this variable to be binary: $T_i=1$ means "took the treatment", while $T_i=0$ means "didn't take the treatment". We will call the group of observations for which $T_i(1)$ the **treatment group** and the group of observations for which $T_i(0)$ the **control group**.
+* $Y_i$: the "outcome" of observation $i$. In our case, this is the average performance of student $i$.
+
+If for a unit $i$, the treatment value is $T_i=t$, we will denote the related observation $Y_i$ as $Y_i(t)$. We note that, for a given unit $i$, we will **either observe $Y_i(0)$ or $Y_i(1)$, but never both!**.
+
+Nevertheless, we will introduce the concept of **potential outcome** as the **value we would observe if we were able to intervene on the treatment variable $T_i$ and change it**. If for a unit $i$ we have $T_i=0$, we will directly observe the outcome $Y_i(0)$, but we will also **theoretically define** the potential outcome $Y_i(1)$. This **is not real and cannot be observed** but it will serve as a useful theoretical concept.
+
+Potential outcomes are also known as **counterfactuals** because they answer to the question "what if...".
+
+If we had potential outcomes, for each unit $i$ we could compute the **individual treatment effect** (the effect of taking the treatment) as:
+
+$$Y_i(1) - Y_i(0)$$
+
+This is the effect of attending the tutoring. If we average this over the distribution of observations, we obtain the **average treatment effect**:
+
+$$ATE = E[Y(1) - Y(0)]$$
+
+This value will tell us **how the exam performance varies in average if the same subjects takes the tutoring or not**. As such, it would indicate **the causal effect of tutoring on examination performance**.
+
+Alternatively, we can compute the **average treatment effect on the treated**:
+
+$$ATT = E[Y(1) - Y(0)|T=1]$$
+
+This simply restricts the computation to the treated subjects, and **also establishes a causal effect**.
+
+## The Bias Arising from Correlation
+
+Without potential outcomes, we cannot compute the $ATE$ or $ATT$ scores. Indeed, we have **two distinct groups**, the **treated** (i.e., those observations $i$ such that $T_i=1$) and the **untreated**, also known as **control group** (i.e., those observations $i$ such that $T_i=0$).
+
+We could think to replace that calculation with the only data we can observe:
+
+$$E[Y(1)|T=1] - E[Y(0)|T=0]$$
+
+This is what **a correlation can measure**: the change in average value of $Y$ in two distinct groups with different characteristics.
+
+Note that there are no potential outcomes in the expression above as we directly observe $Y_i(1)$ when $T_i=1$ and we directly observe $Y_i(0)$ when $T_i=0$. However, the expression above is now **comparing different groups**. Indeed, the subjects who took the treatment are different from the ones who did not take the treatment, and we do not know if their exam performance scores are really comparable. **Imagine that, for some reason, students in group 1 are, by chance, better students, then the difference we measure is going to be biased and will not reveal a cause-effect relationship**.
+
+We can show this in formulas. Let's add and subtract the counterfactual term $E[Y(0)|T=1]$ to the expression above:
+
+$$E[Y(1)|T=1] - E[Y(0)|T=0] = E[Y(1)|T=1] - E[Y(0)|T=0] - E[Y(0)|T=1] + E[Y(0)|T=1]$$
+
+We note that:
+
+$$ATT = E[Y(1) - Y(0)|T=1] = E[Y(1)|T=1] - E[Y(0)|T=1]$$
+
+Hence, we can see the expression above as follows:
+
+$$E[Y(1)|T=1] - E[Y(0)|T=0] = E[Y(1)|T=1] - E[Y(0)|T=1] + E[Y(0)|T=1] - E[Y(0)|T=0] = $$
+$$= ATT + E[Y(0)|T=1] - E[Y(0)|T=0]$$
+
+We will call the last term the bias:
+
+$$BIAS = E[Y(0)|T=1] - E[Y(0)|T=0]$$
+
+So the whole expression can be seen as:
+
+$$E[Y(1)|T=1] - E[Y(0)|T=0] = ATT + BIAS$$
+
+which shows that the effect given by the correlation (left term) is **biased**. Note that the bias cannot be computed (it contains a counterfactual term), but we can interpret it as follows:
+
+> The bias measures how the treated ($T=1$) and control ($T=0$) groups would differ if no one had taken the treatment.
+
+In practice: 
+* If the groups are similar to each other (e.g., treated and control group are mixed students with similar abilities), then the bias will be small or zero. Indeed, in this case, the difference in exam performance among the two groups if everybody sleeps less than $8$ hours should be same, as students have similar abilities.
+* If the groups are dissimilar (e.g., control students are all better students), then the bias will be different from zero. Indeed, if students in the control group are "better students", if all sleep less than $8$ hours, students in the control group will perform better in average, but this has nothing to do with sleeping less or more or with cause-effect relationships among the observed variables.
+
+Note that, given the observations above, we now know **when association allows to establish a cause-effect mechanism**. This happens when the bias is zero:
+
+$$BIAS = E[Y(0)|T=1] - E[Y(0)|T=0] = 0$$
+
+That is to say, when the difference between treated and untreated is zero (or at least very small).
+
+Given this intuition, we now try to estimate the students' abilities by asking how many hours they study per day. We get the following data:
+
+```{python}
+#| echo: false
+students2
+```
+
+**We cannot measure bias from this data because we do not have access to counterfactual observations**, but, now that we have access to a proxy for students' abilities, we can try to see if, in the two groups, abilities are equally distributed. Let's see this with a boxplot:
+
+```{python}
+#| echo: false
+sns.boxplot(data=students2, y='average_study_hours', x='tutoring')
+plt.grid()
+plt.show()
+```
+
+From the picture above, we see that students' skills are not equally distributed in the two groups. **This is not enough to say that the bias is different from zero, as we are not observing counterfactuals, but we now see that the difference in outcomes could be due to two different causes**:
+* Tutoring improves exam performance.
+* Some of the difference may be due to the fact that students following the tutoring program are also students who study more in average (**maybe they are more motivated, so they study more and also choose the tutoring program**) and this may affect the final performance.
+
+We can check the hypothesis that average study hours affects performance with a scatterplot:
+
+```{python}
+#| echo: false
+students2 = pd.DataFrame({
+    'tutoring': tutoring,
+    'performance' : performance,
+    'average_study_hours': (interest/5)*8+np.random.normal(0,0.5,len(interest))
+})
+
+sns.scatterplot(x='average_study_hours', y='performance', data=students2)
+plt.grid()
+plt.show()
+```
+
+From the picture above there seem to be a correlation between the two!
+
+Now that we have an intuition into what may make correlation be not indicative of causation, let's see how to reduce bias to establish cause-effect relationships.
+
+## Randomized Controlled Trials (RCT)
+
+We have seen that correlation is causation when the treated and control groups are comparable for everything except the treatment. The most robust method to remove this bias is via **randomized experiments**, or **Randomized Controlled Trials** (RCT).
+
+A randomized experiment **randomly assigns individuals in a population to a treatment or a control group**. By performing a random assignment, we wish to make the two groups indistinguishable. Of course **one of the two groups will take the treatment and this will likely make the two groups distinguishable**, but we wish to make sure that, **apart from the treatment, the two groups are indeed indistinguishable**.
+
+It can be shown that random assignment makes sure that the potential outcomes are conditionally independent given the treatment:
+
+$$Y(0) \perp Y(1) | T$$
+
+So, if the treatment $T$ is fixed, the potential outcomes are independent. For instance, if we fix $T=1$ (so we are taking subjects who attended the tutoring), then knowing the observed value $Y_i(1)$ (i.e., the observed exam performance of student $i$), does not tell me anything about the potential outcome $Y_i(0)$ (the exam performance that the same student would obtain if they did not attend the tutoring).
+
+> Recall our example on conditional independence: if height and vocabulary are conditionally independent given age, this means that height and vocabulary are independent in the same age groups, while they are not across age groups, so **age is the only thing that make height and vocabulary dependent**. Similarly, if $Y(0) \perp Y(1) | T$, then **the treatment is the only thing generating a difference between the outcome in the treated and in the control group**.
+
+If this conditional independence is valid, then:
+
+$$E[Y(0)|T=0] = E[Y(0)|T=1] = E[Y(0)]$$
+
+and:
+
+$$E[Y(1)|T=0] = E[Y(1)|T=1] = E[Y(1)]$$
+
+Which leads to:
+
+$$E[Y(1)|T=1] - E[Y(0)|T=0] = E[Y(1)] - E[Y(0)] = E[Y(1)-Y(0)] = ATE$$
+
+Hence, in this case, **correlation would be causation**.
+
+### Randomizing tutoring
+We now have a tool to remove the bias probably arising from our prior experiment. Let's say we could repeat the experiment, now with random assignment. 
+
+**Word of caution**: this is not always possible. For instance, in this case, it would not be very polite to "force" students to enroll programs, so we may not be able to carry out this experiment, but let us assume for a moment that we can. 
+
+We repeat the experiment and obtain these results:
+
+```{python}
+#| echo: false
+np.random.seed(42)
+n_students = 200
+interest = np.random.uniform(1,5,n_students).round()
+#tutoring = (((interest-np.median(interest)) + np.random.normal(0,3,n_students))>0).astype(int)
+tutoring = ((np.random.normal(0,3,n_students))>0).astype(int)
+performance = 30+2.5*(3*interest + np.random.normal(10,3,n_students) + 0.1*tutoring)
+performance[performance<0] = 0
+performance[performance>100] = 100
+
+students4 = pd.DataFrame({
+    'tutoring': tutoring,
+    'performance' : performance
+})
+students4
+```
+
+Let's visualize the boxplots:
+
+```{python}
+#| echo: false
+import seaborn as sns
+from matplotlib import pyplot as plt
+
+plt.figure(figsize=(4,6))
+plt.title('Not Randomized')
+sns.boxplot(x='tutoring', y='performance', notch=True, data=students1)
+plt.grid()
+
+plt.figure(figsize=(4,6))
+plt.title('Randomized')
+sns.boxplot(x='tutoring', y='performance', notch=True, data=students4)
+plt.grid()
+
+
+plt.show()
+```
+
+We now see a less dramatic (and actually negative!) improvement. What happened?
+
+By performing a random assignment, we got rid of selection bias. Students voluntarily choosing to enroll in the programme were probably more motivated and keen to study. We now see that the impact of tutoring is very small. We can perform a t-test to assess if this is statistically significant:
+
+```{python}
+#| echo: false
+from scipy.stats import ttest_ind
+t_stat, p_value = ttest_ind(students4[students4['tutoring']==1]['performance'], students4[students4['tutoring']==0]['performance'])
+print(f'T-test results - T-statistic: {t_stat}, p-value: {p_value}')
+```
+
+We got a large p-value, the difference is not statistically significant.
+
+## Causal Effect and Observational Studies
+We have seen how to interpret an observed association as a cause-effect relationship we need to reduce bias. The gold standard is to use randomized controlled trials, however **this is not always feasible or ethical**. Consider for instance **the problem of estimating the effect of smoking on the development of a given disease**. To perform a randomized experiment, we should select subjects randomly in two groups and ask people in one of the two groups to smoke. **This is of course unethical, considering that we suspect that smoking has a bad effect on health**.
+
+In these cases, we can only resort to **observational data**: we collect data of smokers and non-smokers and observe association in the data. However, we know that this process is **subject to bias**. How do we deal with it? In this part of the lecture, we will see that **graphical causal models** give us a framework to **set our believes on where bias come from**. If we can accurately model the source of bias, we can remove it by **controlling** on the variable "causing" the bias.
+
+Let us consider our past example: students and tutoring. Let us assume that we cannot perform the random assignment (again, it's unethical!). Since we imagine that **the interest of students towards study can be a source of bias**, we now ask students to also tell us how interested they are in studying in general in a scale from $1$ to $5$. We obtain the following observations:
+
+```{python}
+#| echo: false
+students3
+```
+
+These are the same observations as the first case (before random assignment), but with an additional variable. We suspected that **interested students have an average higher performance and that interested students are more likely to enroll in the tutoring program**. Let us see graphically if this is true. If we split the data by interest and compute the boxplots of performance, we get the following graph:
+
+```{python}
+#| echo: false
+sns.boxplot(x='interest', y='performance', data=students3)
+plt.grid()
+plt.show()
+```
+
+We were right! (ok, this is an exaggerated picture, but this example is made up...)
+
+Let us check how correlated are `interest` and `tutoring` with a barplot:
+
+```{python}
+#| echo: false
+pd.crosstab(students3['interest'], students3['tutoring'], normalize=0, margins=True).plot.bar(stacked=True)
+plt.show()
+```
+
+We can also check the distribution of interest in the two groups:
+
+```{python}
+#| echo: false
+pd.crosstab(students3['interest'], students3['tutoring'], normalize=1, margins=True).T.plot.bar(stacked=True)
+plt.show()
+```
+
+We can go ahead and compute a $\chi^2$ test of independence to check if the association between the two variables is statistically significant:
+
+```{python}
+#| echo: false
+from scipy.stats import chi2_contingency
+from scipy.stats.contingency import association
+
+contingency = pd.crosstab(students3['interest'], students3['tutoring'])
+
+print(f"Chi-square statistic: {chi2_contingency(contingency).statistic:0.2f}")
+print(f"Cramer V statistic: {association(contingency):0.2f}")
+print(f"Chi-square p-value: {chi2_contingency(contingency).pvalue:e}")
+```
+
+We were right also in this case! Interest affects tutoring, hence interest is our source of bias!
+
+The correlation between the `interest` variable and `tutoring` is making the "treated" (`tutoring=1`) and the "control" (`tutoring=0`) groups not comparable. Indeed, if people in the treated group have more chances of getting a higher response value (performance), then no wonder that we observe such dramatic differences among the two groups! In other words, **the effect we observe may be due to the bias introduced by `interest`, the effect of `tutoring`, or a combination of both**.
+
+### Controlling for `interest`
+How do we make the groups more comparable? Recall that we want:
+
+$$Y(0) \perp Y(1) | T$$
+
+We have seen that this is not true because of `interest`. Indeed, if we pick a person in the group $T=0$ with a high $Y(0)$, we can imagine this is due to a large value of `interest`, so we can easily predict that $Y(1)$ will also be large. **If we can predict $Y(1)$ from $Y(0)$, then they are not independent (conditioned on $T=1$ in this case)**.
+
+To obtain the statement above, we should **perform a random assignment**, which we cannot do. However, we know that `interest` is the source of bias. Let us assume that it is the **only source of bias**. Then, if $X$ represents `interest`, we can say that:
+
+$$Y(0) \perp Y(1) | T, X$$
+
+**Indeed, if we pick a person from a group $T=0$ and with a given interest value $X=4$, then, given a large $Y(0)$ we cannot really say anything about $Y(1)$. Indeed, if $X=4$ and $Y(0)=80$, we have a student with great interest and high performance. What can we say about $Y(1)$? We could say that it will be high (the student has high interest), but any other student in this group will probably have a high score, so we cannot predict anything which will be significantly different from random (i.e., from the score of another random student within this group)**.
+
+But, how do we condition on $X$? Well, the easiest way to do it, is to **divide the data into different groups based on the values of $X$ and assess any association within the groups**. Let us do it:
+
+```{python}
+#| echo: false
+plt.figure(figsize=(10,6))
+sns.boxplot(x='interest', y='performance', data=students3, notch=True, hue='tutoring')
+plt.grid()
+plt.show()
+```
+
+In the plot above, we compare the effect of tutoring in the different `interest` groups. As we can see, the association between `tutoring` and `performance` tends to vanish within the groups. This is shown by the fact that the notches (confidence intervals) tend to intersect. We can get a clearer picture by performing $5$ different two-sample statistical tests assessing whether the means of `performance` in the two groups differ in a statistically significant way:
+
+```{python}
+#| echo: false
+ints = []
+stats = []
+pvals = []
+
+for interest in students3['interest'].unique():
+    #print(f"===== Interest: {int(interest)} =====")
+
+    subset = students3[students3['interest']==interest]
+    t_stat, p_value = ttest_ind(subset[subset['tutoring']==1]['performance'], subset[subset['tutoring']==0]['performance'])
+    #print(f'T-statistic: {t_stat}, p-value: {p_value}')
+
+    ints.append(interest)
+    stats.append(t_stat)
+    pvals.append(p_value)
+    #print()
+
+pd.DataFrame(dict(interest=ints, t_statistic=stats, p_value=pvals)).set_index('interest').sort_index()
+```
+
+As we can see, there is no significant association between `performance` and `tutoring`, which suggests the lack of a causal effect.
+
+**The act of conditioning on $X$ (e.g., by dividing into groups) is called "controlling for $X$"**.
+
+## Graphical Causal Models
+We have seen a simple case in which we could identify the main source of bias which was leading to an observed association not implying a cause-effect mechanism. However, not all cases are so simple and **more than one variable may be responsible for bias**. The question now is
+
+> How do we identify the variables we should control for?
+
+To help us in this quest, we can use graphical causal models. A graphical causal model is a **directed acyclic graph** formalizing cause-effect relationships between variables. **Each node is a random variable, while a directed edge $A \to B$ indicates that $A$ causes $B$.**
+
+The causal graph describing the hypotheses we made in this example will look like this:
+
+```{python}
+#| echo: false
+import graphviz as gr
+
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("X", "T")
+g.edge("X", "Y")
+g.edge("T", "Y")
+
+g.edge("interest", "tutoring")
+g.edge("interest", "performance")
+g.edge("tutoring", "performance")
+
+g
+```
+
+Indeed, we expect `interest` ($X$) to influence both `performance` ($Y$) and whether a subject belong to the treated or control group, i.e., the `tutoring` variable ($T$). From the model above, we can identify `interest` as a source of bias, but **as we will see shortly, we can use a set of rules to identify which variables we should control for or not control for from a graphical model**.
+
+Before proceeding, a short note on **how graphical models are created**: these are generally designed by the data analyst who encodes their own **beliefs** on how the world works. These come from a "Bayesian" view of the world in which we first establish our beliefs and then use a theoretical framework to draw conclusions from them.
+
+### Main Structures of Causal Graphical Models
+Once we form a graphical model, we can identify a set of standard structures which will allow us to choose which variables to control for. We will see the main structures, but others beside the ones discussed here may exist.
+
+#### Chains
+The most straightforward structure is a chain of this kind:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("A", "B")
+g.edge("B", "C")
+g.node("B", "B")
+
+g.edge("interest", "study hours")
+g.edge("study hours", "performance")
+g.node("study hours", "study hours")
+
+g
+```
+
+The example above, `interest` in studying causes the number of `study hours`, which in turn causes `performance`. Let us imagine no other variable is involved (i.e., `interest` is the only variable causing `study hours` and `performance` is only caused by `study hours`). Then we will easily find that:
+
+* `interest` and `study hours` will be associated;
+* `study hours` and `performance` will be associated.
+* `interest` and `performance` will be associated.
+
+Indeed, for instance: 
+* If a person has a great interest, then they will study a lot and have good performance;
+* If a person has good performance, we can infer that it studies a lot and hence has great interest;
+* If a person studies a lot, we infer that it has great interest and good performance;
+
+Let say we **control for $B$, `study hours`**. We will denote the graph as follows (variable we are controlling for is in gray):
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("A", "B")
+g.edge("B", "C")
+g.node("B", "B", color='gray', style='filled')
+
+g.edge("interest", "study hours")
+g.edge("study hours", "performance")
+g.node("study hours", "study hours", color='gray', style='filled')
+
+g
+```
+
+If we **control for $B$, `study hours`, we will find that `interest` and `performance` are not associated anymore**. Indeed:
+
+> If we consider a group of people who study the same amount of hours and I take a person with good performance, then I don't know if they have great interest or not. Or better, I cannot distinguish a person with great interest from a person with little interest as they all study the same amount of hours.
+
+In mathematical terms, we know that in general:
+
+$$A \not\perp C$$
+
+but, by controlling for $B$, we obtain:
+
+$$A \perp C | B$$
+
+Hence, in groups with the same value of $B$, we will see an independence between $A$ and $C$.
+
+In general, we say that **conditioning on $B$ blocks the dependency between $A$ and $C$**, hence **while there is a causal effect between $A$ and $C$, we cannot see it anymore when we condition on $B$**.
+
+The graph below shows two identical graphs, except that we are conditioning on $B$ in the version on the right. Besides solid black arrows denoting cause-effect relationships, we also show **in red how dependency flows**.
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+
+g.node("A","A")
+g.node("B","B")
+g.node("C","C")
+g.edge("A", "B")
+g.edge("B", "C")
+g.edge("A", "B", dir='both', color='red', style='dashed')
+g.edge("B", "C", dir='both', color='red', style='dashed')
+
+
+g.node("A2","A")
+g.node("B2","B", color='gray', style='filled')
+g.node("C2","C")
+g.edge("A2", "B2")
+g.edge("B2", "C2")
+g.edge("A2", "B2",arrowhead='tee', color='red', style='dashed')
+g.edge("B2", "C2", dir='back',arrowtail='tee',color='red', style='dashed')
+g
+```
+
+* In the graph on the left, dependency flows in a bidirectional way **through variable $B$**. This means that $A$ depends on $B$ and $C$ and similarly $C$ depends on $B$ and $A$;
+* In the graph on the right, conditioning on $B$ "stops" the dependency. Now:
+  * $C$ and $A$ are independent of $B$. This makes sense because conditioning on $B$ means fixing a value for $B$, so $A$ and $C$ will be independent of the constant;
+  * $A$ and $C$ are independent (we are conditioning on $B$, so we have $A \perp C | B$).
+
+As a result, if we want to study the relation between $A$ and $C$, we **should not condition on B**, as this conditioning will make the association between $A$ and $C$ vanish, even if there is a causal effect between these variables.
+
+We are encountering an important concept:
+
+> Conditioning on **any** variable is not a good way to remove bias. If we condition on the "wrong" variable, we may introduce some bias which was not there in the first place and estimate the lack of a causal effect even in cases in which the causal effect is there.
+
+### Forks
+We have a fork structure when a variable causes two other variables. Let us see an example:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("B", "A")
+g.edge("B", "C")
+
+g.node("B", "B")
+
+g.edge("interest", "performance")
+g.edge("interest", "tutoring")
+
+g
+```
+
+In this case $B$ (`interest`) is causing both $A$ (`performance`) and $C$ (`tutoring`). This is the example we have seen before. In this case, as we have seen, we may see a correlation between `tutoring` and `performance`. Indeed, a large value of `performance` will probably mean that `interest` is high, hence `tutoring` will probably be equal to $1$.
+
+> We will call $B$ (or `interest`) the **common cause**.
+
+Although we will likely observe correlations between any pair of the $A$, $B$, and $C$ variables, we know from the graph that there is no cause-effect relationship between $A$ and $C$.
+
+We say that the fork structure **creates a backdoor path such that dependence (or association) flows through $B$ (the backdoor) to go from $A$ to $C$**.
+
+As we noted in the previous example, conditioning on $B$ (`interest`) makes the association between $A$ and $C$ vanish:
+
+$$A \perp C | B$$
+
+Hence in the following graph, we will observe no association between `performance` and `tutoring`, hence confirming the lack of a causal effect:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("B", "A")
+g.edge("B", "C")
+
+g.node("B", "B", style='filled', color='gray')
+g.node("interest", "interest", style='filled', color='gray')
+
+g.edge("interest", "performance")
+g.edge("interest", "tutoring")
+
+g
+```
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+
+g.node("A","A")
+g.node("B","B")
+g.node("C","C")
+
+g.edge("B", "C", dir='both', color='red', style='dashed')
+g.edge("B", "A")
+g.edge("B", "C")
+g.edge("B", "A", dir='both', color='red', style='dashed')
+
+g.node("A2","A")
+g.node("B2","B", color='gray', style='filled')
+g.node("C2","C")
+
+g.edge("B2", "A2",arrowtail='tee', dir='back', color='red', style='dashed')
+g.edge("B2", "A2")
+g.edge("B2", "C2")
+g.edge("B2", "C2", dir='back',arrowtail='tee',color='red', style='dashed')
+
+g
+```
+
+When we do not condition on $B$, dependency (hence association) flows from $A$ to $C$ through $B$. Hence, **we observe an association which is not due to a causal effect**.
+
+When we condition on $B$, dependency (hence association) does not flow through $B$, so $A$ and $C$ will be independent and we will measure no association, as it should be.
+
+### Colliders
+The last, important structure, is a collider. This is in some sense the opposite of a fork: a variable is caused by two different variables. Let us see this with an example:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("A", "B")
+g.edge("C", "B")
+
+g.node("B", "B")
+
+g.edge("study hours", "performance")
+g.edge("intuitive intelligence", "performance")
+
+g
+```
+
+The graph above tells us that performance is caused by `study hours` and `intuitive intelligence`. We are making the assumption here that `intuitive intelligence` does not affect `study hours` in any way. This might be inaccurate, but we will anyway assume so for the sake of a simple example.
+
+This structure is called a **collider**, because two arrows (from $A$ and $C$) collide on a single node ($B$).
+
+A collider **blocks dependency**. This means that by default, if we do not condition on `performance`, we will observe no association between `study hours` and `intuitive intelligence`. Indeed:
+* If we know that a person studies a lot, we cannot really say anything about their intuitive intelligence;
+* If we know that a person has intuitive intelligence, we cannot say how much they study.
+
+So, in the graph above:
+
+$$A \perp C$$
+
+Let us not consider a case in which we condition on $B$ (`performance`), as shown in the following graph:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("A", "B")
+g.edge("C", "B")
+
+g.node("B", "B", style='filled', color='gray')
+
+g.edge("study hours", "performance")
+g.edge("intuitive intelligence", "performance")
+
+g.node("performance", "performance", style='filled', color='gray')
+
+g
+```
+
+Conditioning on `performance` changes things. Indeed:
+* If we know that a student has a **good performance** (i.e., we consider the group of good performing students when controlling), then **knowing that they do not study a lot, will tell us that they probably have good intuitive intelligence**. Indeed, if the fixed performance cannot be explained by the large number of study hours, it must be due to good intuitive intelligence;
+* Conversely, if we know that a good performing student has bad intuitive intelligence, then their performance is probably due to a large number of study hours.
+
+In practice, conditioning on `performance` makes `study hours` and `intuitive intelligence` dependent:
+
+$$A \not\perp C | B$$
+
+This phenomenon is called **explaining away**, because, one we fix $B$ (`performance`), knowing $A$ (`study hours`) already explains $B$, hence making $C$ less likely.
+
+In general, **a collider blocks dependency, while conditioning on it unblocks a dependency path**. We can use the same conventions as before to illustrate this effect:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+
+g.node("A","A")
+g.node("B","B")
+g.node("C","C")
+
+g.edge("C", "B", color='red', style='dashed', arrowhead='tee')
+g.edge("A", "B")
+g.edge("C", "B")
+g.edge("A", "B", color='red', style='dashed', arrowhead='tee')
+
+g.node("A2","A")
+g.node("B2","B", color='gray', style='filled')
+g.node("C2","C")
+
+g.edge("C2", "B2", dir='both', color='red', style='dashed')
+g.edge("A2", "B2")
+g.edge("C2", "B2")
+g.edge("A2", "B2", dir='both', color='red', style='dashed')
+
+g
+```
+
+### Dependence Flow Rules
+Using these structures, we can determine if two nodes $A$ and $B$ are dependent by checking **if an unblocked path exists between $A$ and $B$**. This can be done by combining the rules we have seen above, which are also summarized in the following figure:
+
+```{python}
+#| echo: false
+gg = gr.Digraph('G', graph_attr={"bgcolor": "transparent"})
+
+gg.attr(label='Dependence Flow Cheat Sheet', labelloc='t')
+
+
+with gg.subgraph(name='cluster_A') as g:
+    g.attr(label='Chains')
+
+    g.node("3A2","A")
+    g.node("3B2","B", color='gray', style='filled')
+    g.node("3C2","C")
+    g.edge("3A2", "3B2")
+    g.edge("3B2", "3C2")
+    g.edge("3A2", "3B2",arrowhead='tee', color='red', style='dashed')
+    g.edge("3B2", "3C2", dir='back',arrowtail='tee',color='red', style='dashed')
+
+    g.node("3A","A")
+    g.node("3B","B")
+    g.node("3C","C")
+    g.edge("3A", "3B")
+    g.edge("3B", "3C")
+    g.edge("3A", "3B", dir='both', color='red', style='dashed')
+    g.edge("3B", "3C", dir='both', color='red', style='dashed')
+
+with gg.subgraph(name='cluster_C') as g:
+    g.attr(label='Forks')
+    g.node("2A2","A")
+    g.node("2B2","B", color='gray', style='filled')
+    g.node("2C2","C")
+
+    g.edge("2B2", "2A2",arrowtail='tee', dir='back', color='red', style='dashed')
+    g.edge("2B2", "2A2")
+    g.edge("2B2", "2C2")
+    g.edge("2B2", "2C2", dir='back',arrowtail='tee',color='red', style='dashed')
+
+    g.node("2A","A")
+    g.node("2B","B")
+    g.node("2C","C")
+
+    g.edge("2B", "2C", dir='both', color='red', style='dashed')
+    g.edge("2B", "2A")
+    g.edge("2B", "2C")
+    g.edge("2B", "2A", dir='both', color='red', style='dashed')
+
+with gg.subgraph(name='cluster_B') as g:
+    g.attr(label='Colliders')
+
+    g.node("A2","A")
+    g.node("B2","B", color='gray', style='filled')
+    g.node("C2","C")
+
+    g.edge("C2", "B2", dir='both', color='red', style='dashed')
+    g.edge("A2", "B2")
+    g.edge("C2", "B2")
+    g.edge("A2", "B2", dir='both', color='red', style='dashed')
+    
+    g.node("A","A")
+    g.node("B","B")
+    g.node("C","C")
+
+    g.edge("C", "B", color='red', style='dashed', arrowhead='tee')
+    g.edge("A", "B")
+    g.edge("C", "B")
+    g.edge("A", "B", color='red', style='dashed', arrowhead='tee')
+
+gg
+```
+
+The cheat sheet above is replicated from [here](http://ai.stanford.edu/~paskin/gm-short-course/lec2.pdf) and [here](https://matheusfacure.github.io/python-causality-handbook/04-Graphical-Causal-Models.html). You can find more information at those URLs.
+
+We will say that a path between $A$ and $B$ is blocked if:
+
+> * It contains a non-collider that **has been conditioned on**;
+> * It contains a collider that **has not been conditioned on** and has no descendants that have been conditioned on.
+
+Let us see an example from [here](https://matheusfacure.github.io/python-causality-handbook/04-Graphical-Causal-Models.html) and let us try to answer some questions:
+
+::: {.callout-note}
+## Working through d-separation by hand
+Deciding whether two nodes are independent given a set of others is a mechanical procedure — trace every path, block it or not according to the three rules above — and it is worth doing on paper a few times. The exercises at the end of the chapter ask you to. In practice you will rarely do it by hand: what matters for an analysis is recognising confounding and selection bias, which is what the next section is about.
+:::
+
+## Using Graphical Causal Models to Diagnose Bias
+We will now see how using graphical causal models allows to diagnose bias and understand which variables we should condition on and which we should not when trying to measure a causal effect through correlation. We will see that we have two main sources of bias: **confounding bias** and **selection bias**.
+
+### Confounding Bias
+Confounding bias happens when **the treatment and the effect have a common cause**. Let us consider the following example, which we already saw previously:
+
+```{python}
+#| echo: false
+import graphviz as gr
+
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("X", "T")
+g.edge("X", "Y")
+g.edge("T", "Y")
+
+g.edge("interest", "tutoring")
+g.edge("interest", "performance")
+g.edge("tutoring", "performance")
+
+g
+```
+
+Here, the outcome $Y$ is `performance`, which is caused by both the treatment $T$ (`tutoring`) and another common cause $X$ (`interest`). The common cause $X$ is called **a confounder** because it mixes ups the effects of `tutoring` on `performance` and `interest` on `performance`. Indeed, if we measure the correlation between `tutoring` and `performance`, we obtain a large number, but we do not know if this is due to the common cause `interest`. Maybe, people choose tutoring because they are interested and obtain good performance because they are interested as well.
+
+If we want to be able to measure the **direct effect between the treatment and the outcome**, we need to **close the backdoor path between $Y$ and $T$**. This is done by **conditioning on the common cause**:
+
+```{python}
+#| echo: false
+import graphviz as gr
+
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("X", "T")
+g.edge("X", "Y")
+g.edge("T", "Y")
+
+g.node("X", style='filled', color='gray')
+
+g.edge("interest", "tutoring")
+g.edge("interest", "performance")
+g.edge("tutoring", "performance")
+g.node("interest", style='filled', color='gray')
+
+g
+```
+
+Note that this corresponds to comparing subjects with the same level of interest. In this case, we will observe the direct effect of `tutoring` on `performance`, since all students in the considered group have the same level of `interest` (so any association between `tutoring` and `performance` is given by the  causal effect). By conditioning on $X$, we obtain:
+
+$$Y(0) \perp Y(1) | T, X$$
+
+### Selection Bias
+While confounding bias happens when we do not condition on a common cause, selection bias happens when **we control for too many variables**. While one may think that it is a good idea to control on any variable "just in case", this is not true in general and can lead to **selection bias**. 
+
+#### Controlling For a Common Effect
+Let us consider the following example in which we want to measure the causal effect of `intuitive intelligence` on `performance`:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("T", "Y")
+
+#g.node("B", "B", style='filled', color='gray')
+
+g.edge("intuitive intelligence", "performance")
+
+#g.node("performance", "performance", style='filled', color='gray')
+
+g
+```
+
+In our data, we also have a score of a test on problem solving. **"Just to be sure", we condition on `problem solving`**:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("T", "Y")
+g.edge("T", "X")
+g.edge("Y", "X")
+
+g.node("X", style='filled', color='gray')
+
+g.edge("intuitive intelligence", "performance")
+g.edge("intuitive intelligence", "problem solving")
+g.edge("performance", "problem solving")
+
+g.node("problem solving",style='filled', color='gray')
+
+g
+```
+
+The problem is that `problem solving` is a common effect of `performance` and `intuitive intelligence`. By conditioning on the common effect, we are introducing a form of bias. Indeed, **if we look at people with good problem solving abilities, we are probably looking at people with either good performance or good intuitive intelligence**. Indeed, knowing that the person has good performance **explains away whether they have intuitive intelligence**, hence showing a correlation which does not represent a causal effect. **By conditioning on the common cause, we opened a backdoor path between $Y$ and $T$ which affects the perceived association between treatment and outcome**.
+
+Note that the same is true if we condition on a descendant of the common cause. For instance:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("T", "Y")
+g.edge("T", "X1")
+g.edge("Y", "X1")
+g.edge("X1", "X2")
+
+g.node("X2", style='filled', color='gray')
+
+g.edge("intuitive intelligence", "performance")
+g.edge("intuitive intelligence", "problem solving")
+g.edge("performance", "problem solving")
+g.edge("problem solving", "problem solving test")
+
+g.node("problem solving test",style='filled', color='gray')
+
+g
+```
+
+#### Controlling on a Mediator
+Another case of selection bias, arising from cases in which we control for variables we should not control on, is given by the case in which we control on a mediator of the treatment and the outcome. Let us consider this example:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("T", "Y")
+g.edge("T", "X")
+g.edge("X", "Y")
+
+g.node("X", style='filled', color='gray')
+
+g.edge("interest", "performance")
+g.edge("interest", "study hours")
+g.edge("study hours", "performance")
+
+g.node("study hours",style='filled', color='gray')
+
+g
+```
+
+We want to assess the effect of `interest` on performance. Let's say we could randomize interest (for instance, we selected students with different levels of interest randomly across different schools). **"Just to be sure", we condition on `study hours`**. Conditioning on the mediator closes a path between `interest` and `performance`, hence reducing the measured effect between `interest` and `performance`.
+
+**Indeed, while we expect that interested students will study more and obtain better performance, by observing only people who study a lot, `interest` and `performance` may seem to be little correlated. Indeed, even people with little interest will obtain good performance if they study for long hours.**
+
+#### Main Sources of Bias
+To summarize, the main sources of bias are three:
+
+* **Confounders**: we should control on the common cause;
+* **Selection Bias - Common Effect**: we should not control on the common effect;
+* **Selection Bias - Mediator**: we should not control on the mediator.
+
+These are shown in the graph below:
+
+```{python}
+#| echo: false
+gg = gr.Digraph('G', graph_attr={"bgcolor": "transparent"})
+
+gg.attr(label='Main Sources of Bias', labelloc='t')
+
+
+with gg.subgraph(name='cluster_A') as g:
+    g.attr(label='Confounding Bias')
+
+    g.edge("X", "T")
+    g.edge("T", "Y")
+    g.edge("X", "Y")
+
+    g.node("X", color='red')
+    
+
+with gg.subgraph(name='cluster_B') as g:
+    g.attr(label='Selection Bias')
+
+    with g.subgraph(name='cluster_B2') as ggg:
+        ggg.attr(label='Mediator')
+
+        ggg.node("T3", "T")
+        ggg.node("Y3", "Y")
+        ggg.node("X3", "X")
+        
+        ggg.edge("X3", "Y3")
+        ggg.edge("T3", "X3")
+        ggg.edge("T3", "Y3")
+
+        ggg.node('X3', style='filled', color="red", fillcolor='gray')
+
+    with g.subgraph(name='cluster_B1') as ggg:
+        ggg.attr(label='Common Effect')
+
+        ggg.node("T2", "T")
+        ggg.node("Y2", "Y")
+        ggg.node("X2", "X")
+
+        ggg.edge("T2", "Y2")
+        ggg.edge("Y2", "X2")
+        ggg.edge("T2", "X2")
+
+        ggg.node('X2', style='filled', color="red", fillcolor='gray')
+gg
+```
+
+In the figure above, we mark in red the nodes that are not conditioned on, but should be conditioned on, and the nodes that are conditioned on, but should not be conditioned on.
+
+## Linear Regression for Causal Analysis
+We have seen how to choose a suitable set of variables to control for when we aim to establish a cause-effect relationship. When we said "we control for $X$", we implied that we can divide the data in groups and measure association within each group, to then aggregate results and obtain an average effect.
+
+In this section, we will see how we can automate this process with **linear regression**. Let us consider our previous example in which we wanted to measure the causal effect of `tutoring` on `performance`, when we know that `interest` can be a confounder:
+
+```{python}
+#| echo: false
+import graphviz as gr
+
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+
+g.edge("interest", "tutoring")
+g.edge("interest", "performance")
+g.edge("tutoring", "performance")
+
+g
+```
+
+
+This is the data:
+
+```{python}
+#| echo: false
+students = students3
+students
+```
+
+Recall that in this case the assignment is not random, so we expect `interest` to influence both `tutoring` and `performance`. If we ignore this bias, we can compute the average difference in the effect of the treated and untreated:
+
+$$E[performance|tutoring=1] - E[performance|tutoring=0]$$
+
+We can do this in computational terms as follows:
+
+```{python}
+students[tutoring==1]['performance'].mean()-students[tutoring==0]['performance'].mean()
+```
+
+Another relevant value to compute is the average performance of the untreated:
+
+```{python}
+students[students['tutoring']==0]['performance'].mean()
+```
+
+We can see how these values are **automatically computed within a linear regressor** of the kind:
+
+$$performance = \beta_0 + \beta_1 tutoring$$
+
+These are the coefficients after fitting:
+
+```{python}
+#| echo: false
+from statsmodels.formula.api import ols
+
+ols("performance ~ tutoring ", students3).fit().summary().tables[1]
+```
+
+Coherently with the interpretation we previously gave of linear regression, we obtain estimates for those two values:
+* `intercept`: is the average performance of the untreated, i.e., the value of `performance` we expect to see in average when `tutoring=0`;
+* `tutoring`: is the increment of `performance` we expect to see in average when we observe an increment of one unit in `tutoring` (i.e., when passing from `tutoring=0` to `tutoring=1`). This is the average difference of `performance` when comparing the treated `tutoring=1` and the untreated `tutoring=0`.
+
+Also, when we use a linear regressor, we get confidence intervals and the results of statistical tests "for free".
+
+If we look at the result above, **there is non-zero correlation between `performance` and `tutoring`**. Indeed, the coefficient of `tutoring` allows us to observe that **students who enroll in the `tutoring` programme, increase their average `performance` by $6.8269$ points** (remember that performance lies in the $[0,100]$ range). However, we also know that this result is biased due to the confounder `interest`. To remove this bias, we should condition on `interest`:
+
+```{python}
+#| echo: false
+import graphviz as gr
+
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+
+g.edge("interest", "tutoring")
+g.edge("interest", "performance")
+g.edge("tutoring", "performance")
+
+
+g.node('interest', style='filled', color='gray')
+g
+```
+
+We note that one way to **control for a variable is to include it among the independent variables in the linear regressor**, i.e., fitting a model like this:
+
+$$performance = \beta_0 + \beta_1 tutoring + \beta_2 interest$$
+
+The result is as follows:
+
+```{python}
+#| echo: false
+ols("performance ~ tutoring + interest", students3).fit().summary().tables[1]
+```
+
+We note that, after adding this variable, the values of the coefficients changed substantially. **We are in particular interested in the coefficient of `tutoring`, which is measuring the correlation between `tutoring` and `performance`**. We note that we can now interpret this value as follows:
+
+> $\beta_1$ (coefficient of `tutoring`) is the increment we expect to observe in `performance` when `tutoring` passes from $0$ to $1$ **and `interest` is held constant**.
+
+This last bit is the fundamental one: **by including the `interest` variable, we are effectively controlling for `interest`**. Indeed, the coefficient of `tutoring` now virtually looks at a subset of the data in which `interest` is constant. This is in practice the average effect of `tutoring` when comparing groups of data with constant `interest`.
+
+Hence, **even if we cannot physically perform a random assignment, linear regression allows us to control for variables, hence enabling the analysis of observational data**. This is fundamental, as it is not in always feasible to perform random tests.
+
+Getting back to our result above, we note that the coefficient of `tutoring` has a p-value of $0.4$. This means that, while a value different from zero has been computed for it, the hypothesis test is telling us that **we do not have enough elements to say that this value actually is different from zero**. Hence, we can conclude that `tutoring` does not have a statistically significant impact on `performance`.
+
+Note that, **if we compute a linear regressor on the randomized set (i.e., the one in which we pretended we could perform random assignment)**
+
+$$performance = \beta_0 + \beta_1 tutoring$$
+
+we obtain these results:
+
+```{python}
+#| echo: false
+ols('performance ~ tutoring', students2).fit().summary().tables[1]
+```
+
+Coherently with the conclusions made with observational data, there is not a significant relationship between `tutoring` and `performance`.
+
+### Example on the LUCAS Dataset
+We will see some examples on the LUCAS dataset, which can be found here:
+
+https://www.causality.inf.ethz.ch/data/LUCAS.html
+
+LUCAS is an **artificial dataset** in which data has been generated drawing values from known distribution to emulate a causal phenomenon. Besides the data, the authors propose the **following true causal graph** (which reflects the way data has been generated):
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("Anxiety", "Smoking")
+g.edge("Peer Pressure", "Smoking")
+g.edge("Smoking", "Yellow Fingers")
+g.edge("Smoking", "Lung Cancer")
+g.edge("Genetics", "Lung Cancer")
+g.edge("Genetics", "Attention Disorder")
+g.edge("Allergy", "Coughing")
+g.edge("Coughing", "Fatigue")
+g.edge("Lung Cancer", "Coughing")
+g.edge("Lung Cancer", "Fatigue")
+g.edge("Attention Disorder", "Car Accident")
+g.edge("Fatigue", "Car Accident")
+
+g
+```
+
+Let us have a look at the data:
+
+```{python}
+#| echo: false
+# Not served from the site: the Causality Workbench grants no licence, so we read it
+# from the original URL rather than redistribute it. See archive/datasets/README.md.
+lucas = pd.read_csv("http://www.causality.inf.ethz.ch/data/lucas0_train.csv")
+lucas
+```
+
+#### Does `Smoking` causes `Car Accident`?
+We will try to answer the question as to whether there is a causal effect between `Smoking` and `Car Accident`. We can start by fitting a logistic regressor:
+
+$$\log \frac{P(Car Accident|Smoking)}{P(\neg Car Accident|Smoking)} = \sigma(\beta_0 + \beta_1 Smoking)$$
+
+We need to fit a logistic regressor because the dependent variable is binary (all variables are binary). This is the result:
+
+```{python}
+#| echo: false
+from statsmodels.formula.api import logit
+
+logit('Car_Accident ~ Smoking', lucas).fit().summary().tables[1]
+```
+
+From the observation above, it seems that `Smoking` is positively associated with `Car Accident`. Since $e^{0.2596} \approx 1.3$, we can say that smoking is associated by an increase of $+30%$ in the odds of having a car accident. But, can we say that this is a causal effect? I.e., can we say that **smoking causes an increment in the odd of car accident**?
+
+We know that there might be some bias. To check for that, let us consider the causal graph again, and let us highlight all dependence paths from the `Smoking` node to the `Car Accident` node. These represent all the different ways in which the two variables can be correlated.
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("Anxiety", "Smoking")
+g.edge("Peer Pressure", "Smoking")
+g.edge("Smoking", "Yellow Fingers")
+g.edge("Smoking", "Lung Cancer")
+g.edge("Genetics", "Lung Cancer")
+g.edge("Genetics", "Attention Disorder")
+g.edge("Allergy", "Coughing")
+g.edge("Coughing", "Fatigue")
+g.edge("Lung Cancer", "Coughing")
+g.edge("Lung Cancer", "Fatigue")
+g.edge("Attention Disorder", "Car Accident")
+g.edge("Fatigue", "Car Accident")
+
+g.node("Smoking", color='Blue')
+g.node("Car Accident", color='Blue')
+
+g.edge("Smoking", "Lung Cancer", color='orange', dir='both', arrowhead='tee')
+g.edge("Lung Cancer", "Genetics", color='orange', dir='both', arrowtail='tee')
+g.edge("Genetics", "Attention Disorder", color='orange', dir='both')
+g.edge("Attention Disorder", "Car Accident", color='orange', dir='both')
+
+g.edge("Smoking", "Lung Cancer", color='red', dir='both')
+g.edge("Lung Cancer", "Fatigue", color='red', dir='both')
+g.edge("Fatigue", "Car Accident", color='red', dir='both')
+
+
+
+
+
+g.edge("Smoking", "Lung Cancer", color='green', dir='both')
+g.edge("Lung Cancer", "Coughing", color='green', dir='both')
+g.edge("Coughing", "Fatigue", color='green', dir='both')
+g.edge("Fatigue", "Car Accident", color='green', dir='both')
+
+
+
+g
+```
+
+We have three possible paths, highlighted in yellow, red, and green. Arrows indicate whether dependency flows or not. We can see that:
+* The yellow path is blocked because there is a collider (`Lung Cancer`) that has not been conditioned on. The collider prevents `Smoking` and `Genetics` from being associated. This blocked path is ok for us. We are trying to see if smoking causes car accident, and, since, `Lung Cancer` does not cause `Genetics`, that path would not be a viable one to check for a causal effect;
+* The red and green paths are not blocked. This is not ideal, because now there are two ways `Smoking` could influence `Car Accident`, i.e., directly through `Fatigue` or via `Coughing`. This may lead to a combined effect which is stronger than it is supposed to be.
+
+If we want to estimate a causal effect, we need to block one of the two paths. The most sensible thing to do is to **condition on `Coughing`**, so that now smoking can affect Car Accident only through Lung Cancer and then Fatigue. This is illustrated as follows:
+
+```{python}
+#| echo: false
+g = gr.Digraph(graph_attr={"bgcolor": "transparent"})
+g.edge("Anxiety", "Smoking")
+g.edge("Peer Pressure", "Smoking")
+g.edge("Smoking", "Yellow Fingers")
+g.edge("Smoking", "Lung Cancer")
+g.edge("Genetics", "Lung Cancer")
+g.edge("Genetics", "Attention Disorder")
+g.edge("Allergy", "Coughing")
+g.edge("Coughing", "Fatigue")
+g.edge("Lung Cancer", "Coughing")
+g.edge("Lung Cancer", "Fatigue")
+g.edge("Attention Disorder", "Car Accident")
+g.edge("Fatigue", "Car Accident")
+
+g.node("Smoking", color='Blue')
+g.node("Car Accident", color='Blue')
+
+g.edge("Smoking", "Lung Cancer", color='orange', dir='both', arrowhead='tee')
+g.edge("Lung Cancer", "Genetics", color='orange', dir='both', arrowtail='tee')
+g.edge("Genetics", "Attention Disorder", color='orange', dir='both')
+g.edge("Attention Disorder", "Car Accident", color='orange', dir='both')
+
+g.edge("Smoking", "Lung Cancer", color='red', dir='both')
+g.edge("Lung Cancer", "Fatigue", color='red', dir='both')
+g.edge("Fatigue", "Car Accident", color='red', dir='both')
+
+g.edge("Smoking", "Lung Cancer", color='green', dir='both')
+g.edge("Lung Cancer", "Coughing", color='green', dir='both', arrowhead='tee')
+g.edge("Coughing", "Fatigue", color='green', dir='both', arrowtail='tee')
+g.edge("Fatigue", "Car Accident", color='green', dir='both')
+
+g.node("Coughing", style="filled", color='gray')
+
+g
+```
+
+To condition on `Coughing`, we can fit the following logistic regressor:
+
+$$\log \frac{P(Car Accident|Smoking, Coughing)}{P(\neg Car Accident|Smoking, Coughing)} = \sigma(\beta_0 + \beta_1 Smoking + \beta_2 Coughing)$$
+
+We obtain the following coefficients:
+
+```{python}
+#| echo: false
+logit('Car_Accident ~ Smoking + Coughing', lucas).fit().summary().tables[1]
+```
+
+We now get a different picture: the p-value of `Smoking` is very large. This means that, once we removed the influence of `Coughing`, the effect of `Smoking` on `Car Accident` is negligible (its coefficient is not significantly different from zero). This suggests that there is no significant causal effect between the two variables.
+
+## Designing and Analysing Experiments
+
+Everything so far has been about rescuing a causal claim from data that already exists:
+draw the graph, find the confounders, adjust for them, and hope you have not missed one.
+The alternative is to **collect the data differently**, so that the confounders are
+neutralised by the design rather than by a regression afterwards. When you can run an
+experiment, this is always the stronger move — adjustment can only handle the
+confounders you thought of.
+
+### Randomisation
+
+Randomised assignment, which we met in the [RCT section](#randomized-controlled-trials-rct),
+is the foundation: if treatment is assigned by a coin flip, it cannot share a common
+cause with anything, so every backdoor path is closed at once — including the ones
+through variables you never measured or imagined. Nothing you do at analysis time is
+equivalent to this.
+
+### Repeated Measures: Each Subject as Their Own Control
+
+People differ enormously, and in a between-subjects design that variation is noise. In a
+**repeated-measures** (or within-subjects) design every participant is observed under
+every condition, so the comparison happens *inside* each person and the differences
+between people cancel out.
+
+The gain is not small. Here are 30 students, each taught once with the standard method
+and once with tutoring. Tutoring is worth 4 points; the students differ from one another
+by rather more than that.
+
+```{python}
+import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+
+rng = np.random.default_rng(7)
+
+n_subjects = 30
+skill = rng.normal(0, 12, n_subjects)      # students differ a lot from each other
+
+records = []
+for s in range(n_subjects):
+    for method in ("standard", "tutoring"):
+        records.append({
+            "subject": f"S{s:02d}",
+            "method": method,
+            "hours": rng.normal(10, 3),               # a covariate
+            "score": 60 + skill[s]                    # who the student is
+                     + (4.0 if method == "tutoring" else 0.0)   # the real effect
+                     + rng.normal(0, 4),              # measurement noise
+        })
+
+experiment = pd.DataFrame(records)
+experiment.head()
+```
+
+Analysed as if the two groups were unrelated people, the effect disappears into the
+noise:
+
+```{python}
+naive = smf.ols("score ~ C(method)", data=experiment).fit()
+
+print(f"estimated effect: {naive.params['C(method)[T.tutoring]']:.2f} points")
+print(f"p-value:          {naive.pvalues['C(method)[T.tutoring]']:.3f}")
+```
+
+### Mixed-Effects Models
+
+The fix is to tell the model that the two rows belonging to one student are not
+independent. A **mixed-effects model** does this by giving every subject their own
+intercept — a *random effect* — alongside the *fixed effects* we actually want to
+estimate.
+
+$$\text{score}_{ij} = \beta_0 + \beta_1 \text{method}_{ij}
+                   + \beta_2 \text{hours}_{ij} + u_i + \varepsilon_{ij}$$
+
+Here $u_i$ is the $i$-th student's personal offset, estimated as a draw from a
+distribution rather than as 30 separate parameters, and $\varepsilon_{ij}$ is the
+leftover noise.
+
+```{python}
+mixed = smf.mixedlm("score ~ C(method) + hours",
+                    data=experiment,
+                    groups=experiment["subject"]).fit()
+
+print(f"estimated effect: {mixed.params['C(method)[T.tutoring]']:.2f} points")
+print(f"p-value:          {mixed.pvalues['C(method)[T.tutoring]']:.4f}")
+print(f"between-subject variance: {mixed.cov_re.iloc[0, 0]:.1f}")
+```
+
+The same data, the same effect — about three and a half points either way — but the
+p-value moves from 0.18 to below 0.001. Nothing was added; the model was simply told
+which observations belong together, and the between-subject variance (around 90, against
+a residual variance of roughly 16) stopped being counted as noise.
+
+The `groups` argument is what makes it a mixed model. Covariates like `hours` go in the
+formula as usual, which is how a mixed model lets you **adjust and respect the design at
+the same time**.
+
+::: {.callout-tip}
+## When you need a mixed model
+Whenever an observation belongs to a group and observations in the same group are more
+alike than observations in different ones: repeated measurements of the same subject,
+students within a class, patients within a hospital, readings from the same sensor.
+Ignoring that structure does not merely lose power — it also makes standard errors too
+small, so it can turn noise into a significant result just as easily as it hid a real
+one here.
+:::
+
+### Counterbalancing
+
+A repeated-measures design introduces a problem of its own: if everyone does condition A
+before condition B, then "condition" is perfectly confounded with "order". Any practice
+effect, fatigue or boredom is indistinguishable from the treatment.
+
+**Counterbalancing** breaks that: half the participants get A then B, the other half B
+then A. Order is now balanced across conditions, so its effect cancels in the
+comparison — and because you recorded which order each participant had, you can put
+`order` in the model and check whether it mattered.
+
+With more than two conditions, a full counterbalance needs $k!$ orders, which is quickly
+impractical; a **Latin square** gives you a balanced subset in which each condition
+appears once in each position.
+
+::: {.callout-important}
+## Randomise the order, and record it
+The cheap version is to randomise the order per participant rather than balance it
+exactly. That is usually good enough — but only if you **store the order in your
+dataset**. An order effect you did not record is an order effect you cannot check for,
+and it will sit silently inside your treatment estimate.
+:::
+
+### A Causal Claims Checklist
+
+Before writing a sentence with "causes", "improves", "reduces" or "leads to" in it, or a
+sentence that a reader will take that way:
+
+1. **What is the claim?** Name the treatment, the outcome, and the population.
+2. **Where does the data come from?** An experiment, an observational dataset, or a
+   survey? This decides what is available to you before any analysis begins.
+3. **Was the treatment randomised?** If yes, the backdoor paths are closed and you are
+   mostly done. If no, continue.
+4. **Draw the graph.** What could cause both the treatment and the outcome?
+5. **Which confounders did you measure and adjust for?** Which do you know about but
+   could not measure? Say so explicitly — this is the sentence most reports omit.
+6. **Could selection bias be at work?** Are you conditioning on a common effect, or is
+   your sample itself selected on one?
+7. **What is the effect size?** In the units of the problem, with an interval — see
+   [chapter 7](07_comparing_groups.qmd).
+8. **What would change your mind?** Name the observation that would break the claim.
+
+If step 5 or 6 has no good answer, the honest formulation is *associated with*, and a
+sentence saying what would be needed to do better. That is not a weaker result: it is a
+correct one.
+
+## Exercises
+
+1. **Draw the graph.** A study finds that students who use the library more get better
+   marks. Draw a causal graph including at least two plausible confounders. Which arrow
+   is the causal effect of interest, and which paths are backdoor paths?
+2. **d-separation by hand.** In the graph $A \to C \leftarrow B$, $C \to D$: are $A$ and
+   $B$ independent? Are they independent given $C$? Given $D$? Justify each answer with
+   the rules for chains, forks and colliders.
+3. **Adjust, and over-adjust.** On the LUCAS data, estimate the effect of smoking on lung
+   cancer (a) unadjusted, (b) adjusting for the confounders you identify from the graph,
+   (c) adjusting additionally for a *descendant* of the outcome. Explain why (c) is worse
+   than (a).
+4. **Selection bias in the wild.** Among hospital patients, smoking appears protective
+   against a certain disease. Draw the graph that produces this and name the variable
+   being conditioned on.
+5. **Repeated measures.** Take the tutoring simulation from this chapter and reduce the
+   between-subject variation (`skill`) to a standard deviation of 2. Re-run both models.
+   Why does the advantage of the mixed model shrink?
+6. **Design the study.** You want to know whether a new exercise sheet improves exam
+   marks. Write a design: who is assigned to what, in which order, what you record, and
+   which analysis you will run. Then say which confounders your design closes that an
+   observational study could not.
+
+## References
+[1] Most of the content of this lecture is based on part of the awesome lecture series "[Causal Inference for The Brave and True](https://matheusfacure.github.io/python-causality-handbook/landing-page.html)" by Matheus Facure Alves.
+
+[2] Judea Pearl and Dana Mackenzie. "The Book of Why: The New Science of Cause and Effect". Penguin.

@@ -1,0 +1,98 @@
+/* Self-assessment quiz. Colours come from the theme's CSS custom properties where
+   Bootstrap exposes them; the rest is deliberately neutral so a palette swap in
+   brand/brand.yml carries over. */
+
+.quiz { max-width: 46rem; }
+
+.quiz-panel {
+  background: var(--bs-body-bg);
+  border: 1px solid rgba(110, 98, 87, .25);
+  border-top: 4px solid var(--bs-primary);
+  border-radius: 6px;
+  padding: 1.25rem 1.25rem 1rem;
+}
+
+.quiz-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: .9rem 1.1rem;
+  margin-bottom: 1rem;
+}
+.quiz-fields label { display: block; font-weight: 600; font-size: .86rem; margin-bottom: .25rem; }
+.quiz-fields select { width: 100%; padding: .4rem .5rem; border-radius: 4px;
+                      border: 1px solid rgba(110, 98, 87, .4); background: #fff; }
+.quiz-hint { font-size: .86rem; color: var(--bs-secondary-color, #6E6257); margin: .6rem 0 0; }
+
+/* ------------------------------------------------------------------ progress */
+.quiz-meta {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 1rem; font-size: .86rem; margin-bottom: .35rem;
+}
+.quiz-chapter { color: var(--bs-secondary-color, #6E6257); text-align: right; }
+.quiz-track { height: 4px; background: rgba(110, 98, 87, .18); border-radius: 999px; margin-bottom: 1.1rem; }
+.quiz-bar { height: 100%; background: var(--bs-primary); border-radius: 999px; transition: width .2s ease; }
+
+/* ------------------------------------------------------------------- options */
+.quiz-question { font-size: 1.06rem; font-weight: 600; margin-bottom: 1rem; }
+
+.quiz-options { list-style: none; padding: 0; margin: 0 0 1rem; }
+.quiz-options li { margin-bottom: .5rem; }
+
+.quiz-option {
+  display: flex; gap: .7rem; align-items: flex-start;
+  width: 100%; text-align: left;
+  padding: .6rem .8rem;
+  background: var(--bs-body-bg);
+  border: 1px solid rgba(110, 98, 87, .35);
+  border-radius: 5px;
+  font: inherit; color: inherit;
+  cursor: pointer;
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--bs-primary); }
+.quiz-option:disabled { cursor: default; }
+.quiz-option-key {
+  flex: 0 0 1.5rem; height: 1.5rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgba(110, 98, 87, .16);
+  font-weight: 700; font-size: .8rem;
+}
+.quiz-option.is-chosen { border-color: var(--bs-primary); border-width: 2px; }
+.quiz-option.is-correct { background: rgba(47, 133, 90, .12); border-color: #2F855A; }
+.quiz-option.is-correct .quiz-option-key { background: #2F855A; color: #fff; }
+.quiz-option.is-wrong { background: rgba(207, 55, 47, .10); border-color: #CF372F; }
+.quiz-option.is-wrong .quiz-option-key { background: #CF372F; color: #fff; }
+
+/* ------------------------------------------------------------------ feedback */
+.quiz-feedback { padding: .75rem .9rem; border-radius: 5px; border-left: 4px solid; margin-bottom: 1rem; }
+.quiz-feedback p { margin: .35rem 0 0; }
+.quiz-feedback.is-correct { background: rgba(47, 133, 90, .10); border-color: #2F855A; }
+.quiz-feedback.is-wrong   { background: rgba(207, 55, 47, .08); border-color: #CF372F; }
+
+.quiz-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.quiz-actions .quiz-spacer { flex: 1 1 auto; }
+
+/* ------------------------------------------------------------------- results */
+.quiz-score { display: flex; align-items: baseline; gap: .8rem; margin-bottom: 1.2rem; }
+.quiz-score-value { font-size: 2.2rem; font-weight: 700; color: var(--bs-primary); }
+.quiz-score-pct { font-size: 1.1rem; color: var(--bs-secondary-color, #6E6257); }
+
+.quiz-review { list-style: none; padding: 0; margin: 1.4rem 0; }
+.quiz-review-item {
+  padding: .8rem 1rem; margin-bottom: .7rem;
+  border-radius: 5px; border-left: 4px solid;
+  background: rgba(110, 98, 87, .05);
+}
+.quiz-review-item.is-correct { border-color: #2F855A; }
+.quiz-review-item.is-wrong   { border-color: #CF372F; }
+.quiz-review-q { font-weight: 600; margin: 0 0 .4rem; }
+.quiz-review-answer, .quiz-review-correct { margin: 0 0 .2rem; }
+.quiz-review-correct { color: #2F855A; }
+.quiz-review-comment { font-size: .9rem; margin: .4rem 0 0; color: var(--bs-secondary-color, #6E6257); }
+.quiz-review-link { font-size: .86rem; display: inline-block; margin-top: .4rem; }
+
+@media (max-width: 560px) {
+  .quiz-meta { flex-direction: column; gap: .1rem; }
+  .quiz-chapter { text-align: left; }
+  .quiz-option { padding: .55rem .6rem; }
+}

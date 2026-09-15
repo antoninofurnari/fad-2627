@@ -1,0 +1,121 @@
+# Datasets vendored into the site, so the notes never depend on a third-party URL.
+#
+# Chapters load them through a single base:
+#     DATA = "https://antoninofurnari.github.io/fad-2627/data/"   (or ../data/ locally)
+#     pd.read_csv(DATA + "titanic.csv")
+#
+# `python scripts/fetch_data.py` downloads whatever is missing and records its size and
+# checksum here. Files above about 5 MB stay remote and are marked `vendor: false`.
+# Two datasets are deliberately NOT here: `lucas0_train.csv` (chapter 11) and
+# `mall_customers.csv` (chapter 18). Neither source grants a licence, so the site does
+# not redistribute them — those two chapters read them from their original URL, and a
+# private copy lives in `archive/datasets/` in case a source disappears. See
+# `wiki/01_philosophy/data_rights_register.md`.
+datasets:
+- file: titanic.csv
+  source: https://raw.githubusercontent.com/agconti/kaggle-titanic/master/data/train.csv
+  license: Historical passenger records (public domain facts); this CSV via agconti/kaggle-titanic, Apache-2.0
+  used_in:
+  - 01_key_concepts
+  - 02_describing_visualizing
+  - 03_probability
+  - 04_association
+  - 05_distributions
+  - 06_statistical_inference
+  bytes: 60302
+  sha256: 4a437fde05fe5264e1701a7387ac6fb75393772ba38bb2c9c566405af5af4bd7
+- file: height_weight.csv
+  source: http://antoninofurnari.it/downloads/height_weight.csv
+  license: Course material (Antonino Furnari)
+  used_in:
+  - 06_statistical_inference
+  - 15_classification
+  bytes: 105224
+  sha256: 9406827f992d6e44c60f7af8439794d2d89be45c661e0b8b1f032f12d56f9314
+- file: height_weight_pounds.csv
+  source: http://antoninofurnari.it/downloads/height_weight_pounds.csv
+  license: Course material (Antonino Furnari)
+  used_in:
+  - 02_describing_visualizing
+  - 06_statistical_inference
+  bytes: 98763
+  sha256: 87f492062fef4be8759e4c68fcbbcfc3d7038e917aa31220f839c638c5c9595c
+- file: students.csv
+  source: http://antoninofurnari.it/downloads/students.csv
+  license: Course material (Antonino Furnari)
+  used_in:
+  - lab_03_python_for_data_science
+  bytes: 5557
+  sha256: f4a0dc16ea72684d3281eee9ec72f8ae68dd798ab3000ba95642d1013ed89013
+- file: googleplaystore.csv
+  source: http://antoninofurnari.it/downloads/googleplaystore.csv
+  license: CC BY-SA 4.0 (Kaggle, lava18/google-play-store-apps) — attribution and share-alike
+  used_in:
+  - lab_03_python_for_data_science
+  bytes: 1360155
+  sha256: 3e438f48161961933d26e99a8d9fc8ed79edfaa9fb34f8838e1ab4ec7a9fab91
+- file: cdc_diabetes_health_indicators.csv.gz
+  source: https://archive.ics.uci.edu/dataset/891/cdc+diabetes+health+indicators
+  ucimlrepo_id: 891
+  license: US federal public domain (CDC BRFSS 2015) — UCI defers to the source
+  used_in:
+  - 13_predictive_analysis
+  bytes: 1711943
+  sha256: 78508c969a741f8ab98f28e13e73c1af72768b1fbc81c671416abdae862c4030
+  # Replaces pima_indians_diabetes.csv, which UCI withdrew and which reached us from a
+  # repository with no licence at all. See wiki/01_philosophy/data_rights_register.md.
+  # Same teaching shape -- a BMI column to fit a Gaussian to, and a binary outcome --
+  # from a documented national survey rather than from a contested collection.
+  # Stored gzipped: 11.6 MB as plain text is over the 10 MB AGENTS.md asks about, and
+  # pandas infers the compression from the extension when it reads it.
+- file: auto_mpg.data
+  source: https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data
+  license: CC BY 4.0 (UCI, Auto MPG) — attribution required
+  used_in:
+  - 08_linear_regression
+  bytes: 30286
+  sha256: 67c69614017f04ecafbe8d011a5dce2ee07eebddfc8f7d922f409e81ae234de9
+  # NOT a byte-for-byte copy of the UCI file: it was rebuilt from the seaborn-data
+  # mirror (mwaskom/seaborn-data/mpg.csv), because archive.ics.uci.edu was unreachable.
+  # Same 398 rows in the same order, same '?' for the 6 missing horsepower values,
+  # origin recoded back to 1/2/3 (USA 249, Europe 70, Japan 79 — the UCI counts);
+  # only the column spacing differs. Verified to reproduce the chapters' numbers:
+  # R2 0.606 / 0.688 / 0.706 / 0.808 and the coefficients 39.94, -0.158.
+  # `python scripts/fetch_data.py` leaves it alone; delete it to fetch the original.
+- file: breast_cancer_wisconsin.csv
+  source: https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic
+  ucimlrepo_id: 17
+  license: CC BY 4.0 (UCI, Breast Cancer Wisconsin Diagnostic) — attribution required
+  used_in:
+  - 09_logistic_regression
+  bytes: 121248
+  sha256: 5c2238c5d8c38eefbbe1238b1c88f25cdee5299ad5010eb2103dd4b1e6a1c715
+  # Written by fetch_data.py from `fetch_ucirepo(id=17)`, features joined to targets,
+  # which is exactly the frame chapter 09 used to build at render time. Keeping the
+  # ucimlrepo column names (radius1, ...) rather than scikit-learn's (mean radius)
+  # is what makes the chapter's prose and its `radius1` plots still hold.
+- file: automobile.csv
+  source: https://archive.ics.uci.edu/dataset/10/automobile
+  ucimlrepo_id: 10
+  license: CC BY 4.0 (UCI, Automobile) — attribution required
+  used_in:
+  - 08_linear_regression
+  bytes: 25925
+  sha256: 8982354c784644be625c110d2b850dc66af2c874139128a49cffef4fbe34c6fe
+  # Same treatment as breast_cancer_wisconsin.csv: `fetch_ucirepo(id=10)`, features
+  # joined to targets. Chapter 08 selects and renames six of these columns itself.
+- file: sms_spam_collection.zip
+  source: https://archive.ics.uci.edu/static/public/228/sms+spam+collection.zip
+  license: CC BY 4.0 (UCI, SMS Spam Collection) — cite Almeida & Gomez Hidalgo; the readme asks for it
+  used_in:
+  - 16_generative_classifiers
+  - 17_data_representation
+  bytes: 203415
+  sha256: 1587ea43e58e82b14ff1f5425c88e17f8496bfcdb67a583dbff9eefaf9963ce3
+- file: sentiment_labelled_sentences.zip
+  source: https://archive.ics.uci.edu/ml/machine-learning-databases/00331/sentiment%20labelled%20sentences.zip
+  license: CC BY 4.0 (UCI, Sentiment Labelled Sentences) — cite Kotzias et al., KDD 2015
+  used_in:
+  - 17_data_representation
+  bytes: 84188
+  sha256: afc26626d710899948693e1a61405dce197f57ffa719fa1130d346b4cc095343
