@@ -1,0 +1,100 @@
+/* Self-assessment quiz. Colours come from the theme's --fad-* custom properties
+   (theme/_fad-rules.scss), so the quiz follows the light and the dark theme; the
+   fallbacks are the light values. */
+
+.quiz { max-width: 46rem; }
+
+.quiz-panel {
+  background: var(--fad-surface-raised, #fff);
+  border-radius: 12px;
+  box-shadow: var(--fad-shadow-card, 0 2px 8px rgba(14, 30, 54, .08));
+  padding: 1.25rem 1.25rem 1rem;
+}
+
+.quiz-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: .9rem 1.1rem;
+  margin-bottom: 1rem;
+}
+.quiz-fields label { display: block; font-weight: 600; font-size: .86rem; margin-bottom: .25rem; }
+.quiz-fields select { width: 100%; padding: .4rem .5rem; border-radius: 4px;
+                      border: 1px solid var(--fad-hairline, #E5E7EB);
+                      background: var(--fad-surface-raised, #fff); color: inherit; font: inherit; }
+.quiz-hint { font-size: .86rem; color: var(--fad-text-muted, #6B7280); margin: .6rem 0 0; }
+
+/* ------------------------------------------------------------------ progress */
+.quiz-meta {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 1rem; font-size: .86rem; margin-bottom: .35rem;
+}
+.quiz-chapter { color: var(--fad-text-muted, #6B7280); text-align: right; }
+.quiz-track { height: 4px; background: var(--fad-hairline, #E5E7EB); border-radius: 999px; margin-bottom: 1.1rem; }
+.quiz-bar { height: 100%; background: var(--bs-primary); border-radius: 999px; transition: width .2s ease; }
+
+/* ------------------------------------------------------------------- options */
+.quiz-question { font-size: 1.06rem; font-weight: 600; margin-bottom: 1rem; }
+
+.quiz-options { list-style: none; padding: 0; margin: 0 0 1rem; }
+.quiz-options li { margin-bottom: .5rem; }
+
+.quiz-option {
+  display: flex; gap: .7rem; align-items: flex-start;
+  width: 100%; text-align: left;
+  padding: .6rem .8rem;
+  background: var(--fad-surface-raised, #fff);
+  border: 1px solid var(--fad-hairline, #E5E7EB);
+  border-radius: 12px;
+  font: inherit; color: inherit;
+  cursor: pointer;
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--bs-primary); }
+.quiz-option:disabled { cursor: default; }
+.quiz-option-key {
+  flex: 0 0 1.5rem; height: 1.5rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--fad-tint-blue, #E8EFF6); color: var(--fad-blue, #1C476F);
+  font-weight: 700; font-size: .8rem;
+}
+.quiz-option.is-chosen { border-color: var(--bs-primary); border-width: 2px; }
+.quiz-option.is-correct { background: rgba(47, 125, 79, .12); border-color: var(--fad-success, #2F7D4F); }
+.quiz-option.is-correct .quiz-option-key { background: var(--fad-success, #2F7D4F); color: #fff; }
+.quiz-option.is-wrong { background: rgba(180, 35, 24, .10); border-color: var(--fad-danger, #B42318); }
+.quiz-option.is-wrong .quiz-option-key { background: var(--fad-danger, #B42318); color: #fff; }
+
+/* ------------------------------------------------------------------ feedback */
+.quiz-feedback { padding: .85rem 1rem; border-radius: 12px; margin-bottom: 1rem; }
+.quiz-feedback p { margin: .35rem 0 0; }
+.quiz-feedback.is-correct { background: rgba(47, 125, 79, .12); }
+.quiz-feedback.is-wrong   { background: rgba(180, 35, 24, .10); }
+
+.quiz-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.quiz-actions .quiz-spacer { flex: 1 1 auto; }
+
+/* ------------------------------------------------------------------- results */
+.quiz-score { display: flex; align-items: baseline; gap: .8rem; margin-bottom: 1.2rem; }
+.quiz-score-value { font-size: 2.2rem; font-weight: 700; color: var(--bs-primary); }
+.quiz-score-pct { font-size: 1.1rem; color: var(--fad-text-muted, #6B7280); }
+
+.quiz-review { list-style: none; padding: 0; margin: 1.4rem 0; }
+.quiz-review-item {
+  padding: .8rem 1rem; margin-bottom: .7rem;
+  border-radius: 12px;
+  background: var(--fad-surface-raised, #fff);
+  box-shadow: var(--fad-shadow-card, 0 2px 8px rgba(14, 30, 54, .08));
+}
+/* The verdict is the pill-coloured question line, not a stripe down the side */
+.quiz-review-item.is-correct .quiz-review-q { color: var(--fad-success, #2F7D4F); }
+.quiz-review-item.is-wrong   .quiz-review-q { color: var(--fad-danger, #B42318); }
+.quiz-review-q { font-weight: 600; margin: 0 0 .4rem; }
+.quiz-review-answer, .quiz-review-correct { margin: 0 0 .2rem; }
+.quiz-review-correct { color: var(--fad-success, #2F7D4F); }
+.quiz-review-comment { font-size: .9rem; margin: .4rem 0 0; color: var(--fad-text-muted, #6B7280); }
+.quiz-review-link { font-size: .86rem; display: inline-block; margin-top: .4rem; }
+
+@media (max-width: 560px) {
+  .quiz-meta { flex-direction: column; gap: .1rem; }
+  .quiz-chapter { text-align: left; }
+  .quiz-option { padding: .55rem .6rem; }
+}

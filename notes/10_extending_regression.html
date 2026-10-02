@@ -1,0 +1,2280 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Extending regression models: interactions, polynomial and multinomial terms – Fundamentals of Data Analysis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../notes/11_causal_analysis.html" rel="next">
+<link href="../notes/09_logistic_regression.html" rel="prev">
+<link href="../assets/favicon.png" rel="icon" type="image/png">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-25cb606da3a62b75b45781cfd62e2df7.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-f9d118f355102d8867d191a0ca0eff69.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-25cb606da3a62b75b45781cfd62e2df7.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-803bd6a7c03b82662227932a1eb555f8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-caeb641fa4792f4a64efccf83bff4bba.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-803bd6a7c03b82662227932a1eb555f8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<style>html{ scroll-behavior: smooth; }</style>
+<!-- GENERATED from brand/brand.yml by scripts/build_brand.py — do not edit -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,700;0,800;1,400;1,700;1,800&amp;family=JetBrains%20Mono:wght@400;700&amp;display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+  <script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+
+<body class="nav-sidebar docked quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../notes/10_extending_regression.html">Lecture 10 — Extending regression models</a></li><li class="breadcrumb-item"><a href="../notes/10_extending_regression.html">Extending regression models: interactions, polynomial and multinomial terms</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+      <a href="../index.html" class="sidebar-logo-link">
+      <img src="../assets/logo.png" alt="Fundamentals of Data Analysis" class="sidebar-logo py-0 d-lg-inline d-none">
+      </a>
+      <div class="sidebar-tools-main tools-wide">
+    <a href="https://github.com/antoninofurnari/fad-2627" title="" class="quarto-navigation-tool px-1" aria-label="Repository of these lecture notes"><i class="bi bi-github"></i></a>
+    <a href="https://antoninofurnari.github.io/fadlecturenotes/" title="" class="quarto-navigation-tool px-1" aria-label="Course website"><i class="bi bi-globe"></i></a>
+    <a href="../files/chapters/fad-2627-book.pdf" title="" class="quarto-navigation-tool px-1" aria-label="Download the whole book (PDF)"><i class="bi bi-file-earmark-pdf"></i></a>
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Home</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 1 — Course introduction and Python</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/lab_01_setup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Setting up the working environment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/lab_02_python_crash_course.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Python crash course</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/lab_03_python_for_data_science.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Python for data science crash course</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 2 — Key concepts</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/01_key_concepts.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Key concepts, loading and inspecting the data</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 3 — Describing and visualizing the data</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/02_describing_visualizing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Describing and visualizing the data</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 4 — Probability</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/03_probability.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Probability for data analysis</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 5 — Association between variables</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/04_association.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Association between variables</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 6 — Data distributions</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/05_distributions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data distributions</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 7 — Statistical inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/06_statistical_inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Statistical inference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 8 — Linear regression</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/08_linear_regression.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Linear regression</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 9 — Logistic regression</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/09_logistic_regression.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Logistic regression</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 10 — Extending regression models</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/10_extending_regression.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Extending regression models: interactions, polynomial and multinomial terms</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 11 — Causal analysis</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-11" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/11_causal_analysis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Causal analysis</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 12 — Storytelling with data</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-12" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/12_storytelling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Storytelling with data</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-13" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 14 — Introduction to predictive analysis</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-13" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-13" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/13_predictive_analysis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction to predictive analysis</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-14" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 15 — Regression for prediction</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-14" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-14" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/14_regression_for_prediction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Regression for prediction: overfitting, regularization and the scikit-learn workflow</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-15" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 16 — Classification</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-15" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-15" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/15_classification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Classification, evaluation measures and KNN</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-16" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 17 — Generative classifiers</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-16" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-16" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/16_generative_classifiers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Generative classifiers: QDA, LDA and naive Bayes</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-17" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 18 — Data representation and clustering</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-17" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-17" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/17_data_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data representation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/18_clustering.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Clustering</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-18" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 19 — Density estimation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-18" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-18" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/19_density_estimation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Density estimation</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-19" role="navigation" aria-expanded="true">
+ <span class="menu-text">Lecture 20 — Dimensionality reduction (PCA)</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-19" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-19" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../notes/20_pca.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Dimensionality reduction: principal component analysis</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="2">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#extending-the-linear-model-with-interaction-terms" id="toc-extending-the-linear-model-with-interaction-terms" class="nav-link active" data-scroll-target="#extending-the-linear-model-with-interaction-terms">Extending the Linear Model with Interaction Terms</a>
+  <ul class="collapse">
+  <li><a href="#interpreting-the-interaction" id="toc-interpreting-the-interaction" class="nav-link" data-scroll-target="#interpreting-the-interaction">Interpreting the Interaction</a></li>
+  </ul></li>
+  <li><a href="#quadratic-and-polynomial-regression" id="toc-quadratic-and-polynomial-regression" class="nav-link" data-scroll-target="#quadratic-and-polynomial-regression">Quadratic and Polynomial Regression</a>
+  <ul class="collapse">
+  <li><a href="#polynomial-regression" id="toc-polynomial-regression" class="nav-link" data-scroll-target="#polynomial-regression">Polynomial Regression</a></li>
+  </ul></li>
+  <li><a href="#multinomial-logistic-regression" id="toc-multinomial-logistic-regression" class="nav-link" data-scroll-target="#multinomial-logistic-regression">Multinomial Logistic Regression</a>
+  <ul class="collapse">
+  <li><a href="#variables" id="toc-variables" class="nav-link" data-scroll-target="#variables">Variables</a></li>
+  <li><a href="#the-multinomial-logistic-regression-model" id="toc-the-multinomial-logistic-regression-model" class="nav-link" data-scroll-target="#the-multinomial-logistic-regression-model">The Multinomial Logistic Regression Model</a></li>
+  <li><a href="#model-overview" id="toc-model-overview" class="nav-link" data-scroll-target="#model-overview">Model Overview</a></li>
+  <li><a href="#coefficient-interpretation" id="toc-coefficient-interpretation" class="nav-link" data-scroll-target="#coefficient-interpretation">Coefficient Interpretation</a></li>
+  </ul></li>
+  <li><a href="#geometrical-interpretation-of-the-coefficients-of-a-logistic-regressor" id="toc-geometrical-interpretation-of-the-coefficients-of-a-logistic-regressor" class="nav-link" data-scroll-target="#geometrical-interpretation-of-the-coefficients-of-a-logistic-regressor">Geometrical Interpretation of the Coefficients of a Logistic Regressor</a></li>
+  <li><a href="#exercises" id="toc-exercises" class="nav-link" data-scroll-target="#exercises">Exercises</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="10_extending_regression.ipynb" download="10_extending_regression.ipynb"><i class="bi bi-journal-code"></i>Jupyter</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../notes/10_extending_regression.html">Lecture 10 — Extending regression models</a></li><li class="breadcrumb-item"><a href="../notes/10_extending_regression.html">Extending regression models: interactions, polynomial and multinomial terms</a></li></ol></nav>
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Extending regression models: interactions, polynomial and multinomial terms</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="callout callout-style-default callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Chapter resources
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><a href="../files/slides/10_extending_regression.pdf" class="btn btn-sm btn-primary">Slides (PDF)</a> <a href="https://colab.research.google.com/github/antoninofurnari/fad-2627/blob/main/notes/10_extending_regression.ipynb" class="btn btn-sm btn-outline-primary">Open in Colab</a> <a href="../files/chapters/10_extending_regression.pdf" class="btn btn-sm btn-outline-primary btn-chapter-pdf">Download PDF</a> <a href="../quiz.html?bank=10" class="btn btn-sm btn-outline-primary">Practice quiz</a></p>
+</div>
+</div>
+<p><a href="../notes/08_linear_regression.html">Chapter 8</a> and <a href="../notes/09_logistic_regression.html">chapter 9</a> introduced the two workhorse regression models in their simplest form: one straight line, one logistic curve, each with its coefficients read as a statement about the phenomenon. This chapter keeps that statistical reading and relaxes three of its restrictions.</p>
+<p><strong>Interaction terms</strong> let the effect of one variable depend on another — the honest way to say “it depends”. <strong>Polynomial terms</strong> let a relationship bend without abandoning least squares. <strong>Multinomial logistic regression</strong> extends the logistic model from two outcomes to many.</p>
+<p>All three are still about <em>explaining</em>: we fit with <code>statsmodels</code>, read coefficients, and check whether they say something defensible. <a href="../notes/14_regression_for_prediction.html">Chapter 14</a> takes the same models and asks a different question — how well do they predict data they have never seen?</p>
+<section id="extending-the-linear-model-with-interaction-terms" class="level2">
+<h2 class="anchored" data-anchor-id="extending-the-linear-model-with-interaction-terms">Extending the Linear Model with Interaction Terms</h2>
+<p>A simple linear model assumes the effect of each predictor on <span class="math inline">Y</span> is <strong>additive</strong>. The formula</p>
+<p><span class="math display">mpg = \beta_0 + \beta_1 \text{horsepower} + \beta_2 \text{weight}</span></p>
+<p>assumes that the effect of 1 unit of <code>horsepower</code> (which is <span class="math inline">\beta_1</span>) is <strong>constant</strong>, regardless of the car’s <code>weight</code>.</p>
+<p>Is that true? We can test this by adding an <strong>interaction term</strong>:</p>
+<p><span class="math display">mpg = \beta_0 + \beta_1 \text{horsepower} + \beta_2 \text{weight} + \beta_3 (\text{horsepower} \times \text{weight})</span></p>
+<div id="b01ae5d1" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Load and clean the data (same as last lecture)</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>mpg <span class="op">=</span> sns.load_dataset(<span class="st">'mpg'</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>mpg <span class="op">=</span> mpg.drop(<span class="st">'name'</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>mpg[<span class="st">'horsepower'</span>] <span class="op">=</span> pd.to_numeric(mpg[<span class="st">'horsepower'</span>], errors<span class="op">=</span><span class="st">'coerce'</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>mpg <span class="op">=</span> mpg.dropna()</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit the simple additive model</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>model_additive <span class="op">=</span> smf.ols(<span class="st">'mpg ~ horsepower + weight'</span>, data<span class="op">=</span>mpg).fit()</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit the new interaction model</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>model_interaction <span class="op">=</span> smf.ols(<span class="st">'mpg ~ horsepower + weight + horsepower * weight'</span>, data<span class="op">=</span>mpg).fit()</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"--- Additive Model (R-squared) ---"</span>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Adj. R-squared: </span><span class="sc">{</span>model_additive<span class="sc">.</span>rsquared_adj<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">--- Interaction Model (R-squared) ---"</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Adj. R-squared: </span><span class="sc">{</span>model_interaction<span class="sc">.</span>rsquared_adj<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">--- Interaction Model Coefficients ---"</span>)</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_interaction.summary().tables[<span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>--- Additive Model (R-squared) ---
+Adj. R-squared: 0.7049
+
+--- Interaction Model (R-squared) ---
+Adj. R-squared: 0.7465
+
+--- Interaction Model Coefficients ---
+=====================================================================================
+                        coef    std err          t      P&gt;|t|      [0.025      0.975]
+-------------------------------------------------------------------------------------
+Intercept            63.5579      2.343     27.127      0.000      58.951      68.164
+horsepower           -0.2508      0.027     -9.195      0.000      -0.304      -0.197
+weight               -0.0108      0.001    -13.921      0.000      -0.012      -0.009
+horsepower:weight  5.355e-05   6.65e-06      8.054      0.000    4.05e-05    6.66e-05
+=====================================================================================</code></pre>
+</div>
+</div>
+<section id="interpreting-the-interaction" class="level3">
+<h3 class="anchored" data-anchor-id="interpreting-the-interaction">Interpreting the Interaction</h3>
+<p>Notice two things:</p>
+<ol type="1">
+<li>The <strong>Adj. R-squared</strong> increased! This indicates the interaction model is a better fit.</li>
+<li>The p-value for the <code>horsepower:weight</code> term is tiny (<span class="math inline">&lt; 0.001</span>). This confirms the interaction is statistically significant.</li>
+</ol>
+<p>But how do we interpret the coefficient for <code>horsepower</code>? We can rewrite the formula:</p>
+<p><span class="math display">mpg = \beta_0 + (\beta_1 + \beta_3 \times \text{weight}) \times \text{horsepower} + \beta_2 \text{weight}</span></p>
+<p>The “effect” of <code>horsepower</code> is no longer a single number, <span class="math inline">\beta_1</span>. It is now <span class="math inline">(\beta_1 + \beta_3 \times \text{weight})</span>. This means the effect of <code>horsepower</code> <em>depends on</em> the <code>weight</code> of the car.</p>
+<p>In practice, <strong>when we increase <code>weight</code> by one unit, we increase the effect of <code>horsepower</code> on <code>mpg</code> by <span class="math inline">\beta_3</span> units</strong>. This means that for heavier cars, <code>horsepower</code> has a less negative effect on <code>mpg</code>.</p>
+<p>This makes sense mechanically: in a very heavy car, horsepower is needed just to move it, so the efficiency penalty is smaller compared to a light car where extra horsepower is “overkill.</p>
+<p>Let’s diagnose our residuals to see if we gained something:</p>
+<div id="ae6bb999" class="cell" data-execution_count="3">
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10_extending_regression_files/figure-html/cell-4-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The situation improved! We now have a better model, even if not perfect.</p>
+</section>
+</section>
+<section id="quadratic-and-polynomial-regression" class="level2">
+<h2 class="anchored" data-anchor-id="quadratic-and-polynomial-regression">Quadratic and Polynomial Regression</h2>
+<p>We will now take another route to address our nonlinear problem. Let’s have a look at the relationship between <code>mpg</code> and <code>horsepower</code>:</p>
+<div id="fc2f1e5a" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(x<span class="op">=</span><span class="st">'horsepower'</span>,y<span class="op">=</span><span class="st">'mpg'</span>,data<span class="op">=</span>data)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10_extending_regression_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This relationship does not look linear. It looks instead as a quadratic, which would be fit by the following model:</p>
+<p><span class="math display">mpg = \beta_0 + \beta_1 horsepower + \beta_2 horsepower^2</span></p>
+<p>Again, the model above is nonlinear in <code>horsepower</code>, but we can still fit it with a linear regressor if we add a new variable <span class="math inline">z=horsepower^2</span>.</p>
+<p>The fit model will obtain <span class="math inline">R^2=0.688</span>, larger than the <span class="math inline">R^2=0.606</span> obtained by the base model (<span class="math inline">mpg = \beta_0 + \beta_1 horsepower</span>). Both have a large F-statistic.</p>
+<p>The estimated coefficients are:</p>
+<div id="2d71f01c" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ols(<span class="st">"mpg ~ horsepower + I(horsepower**2)"</span>, data).fit().summary().tables[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<table class="simpletable caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<tbody>
+<tr class="odd">
+<td></td>
+<td data-quarto-table-cell-role="th">coef</td>
+<td data-quarto-table-cell-role="th">std err</td>
+<td data-quarto-table-cell-role="th">t</td>
+<td data-quarto-table-cell-role="th">P&gt;|t|</td>
+<td data-quarto-table-cell-role="th">[0.025</td>
+<td data-quarto-table-cell-role="th">0.975]</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Intercept</td>
+<td>56.9001</td>
+<td>1.800</td>
+<td>31.604</td>
+<td>0.000</td>
+<td>53.360</td>
+<td>60.440</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">horsepower</td>
+<td>-0.4662</td>
+<td>0.031</td>
+<td>-14.978</td>
+<td>0.000</td>
+<td>-0.527</td>
+<td>-0.405</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">I(horsepower ** 2)</td>
+<td>0.0012</td>
+<td>0.000</td>
+<td>10.080</td>
+<td>0.000</td>
+<td>0.001</td>
+<td>0.001</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The coefficients now describe the quadratic:</p>
+<p><span class="math display">y = 56.9001 - 0.4662 x + 0.0012 x^2</span></p>
+<p>If we plot it on the data, we obtain the following:</p>
+<div id="801a4a34" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>model<span class="op">=</span>ols(<span class="st">"mpg ~ horsepower + I(horsepower**2)"</span>, data).fit()</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>b0, b1, b2 <span class="op">=</span> model.params.values</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(x<span class="op">=</span><span class="st">'horsepower'</span>,y<span class="op">=</span><span class="st">'mpg'</span>,data<span class="op">=</span>data)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="dv">40</span>,<span class="dv">240</span>,<span class="dv">200</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> b0<span class="op">+</span>b1<span class="op">*</span>x<span class="op">+</span>b2<span class="op">*</span>x<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>plt.plot(x,y,<span class="st">'r'</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10_extending_regression_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="polynomial-regression" class="level3">
+<h3 class="anchored" data-anchor-id="polynomial-regression">Polynomial Regression</h3>
+<p>In general, we can fit a polynomial model to the data, choosing a suitable degree <span class="math inline">d</span>. For instance, for <span class="math inline">d=4</span> we have:</p>
+<p><span class="math display">mpg = \beta_0 + \beta_1 horsepower + \beta_2 horsepower^2 + \beta_3 horsepower^3 + \beta_4 horsepower^4</span></p>
+<p>which identifies the following fit:</p>
+<div id="1e1ea81e" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>model<span class="op">=</span>ols(<span class="st">"mpg ~ horsepower + I(horsepower**2) + I(horsepower**3) + I(horsepower**4)"</span>, data).fit()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>b0, b1, b2, b3,b4 <span class="op">=</span> model.params.values</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(x<span class="op">=</span><span class="st">'horsepower'</span>,y<span class="op">=</span><span class="st">'mpg'</span>,data<span class="op">=</span>data)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="dv">40</span>,<span class="dv">240</span>,<span class="dv">200</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> b0<span class="op">+</span>b1<span class="op">*</span>x<span class="op">+</span>b2<span class="op">*</span>x<span class="op">**</span><span class="dv">2</span><span class="op">+</span>b3<span class="op">*</span>x<span class="op">**</span><span class="dv">3</span><span class="op">+</span>b4<span class="op">*</span>x<span class="op">**</span><span class="dv">4</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>plt.plot(x,y,<span class="st">'r'</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10_extending_regression_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This approach is known as <strong>polynomial regression</strong> and allows to turn the linear regression into a nonlinear model. Note that, when we have more variables, polynomial regression also includes interaction terms. For instance, the linear model:</p>
+<p><span class="math display">y = \beta_0 + \beta_1x + \beta_2y</span></p>
+<p>becomes the following polynomial model of degree <span class="math inline">2</span>:</p>
+<p><span class="math display">y = \beta_0 + \beta_1x + \beta_2y + \beta_3x^2 + \beta_4y^2 + \beta_5 xy</span></p>
+<p>As usual, we only have to add new variables for the squared and interaction term and solve the problem as a linear regression one. This is easily handled by libraries. Note that, as the number of variables increases, the number of terms to add for a given degree also increases.</p>
+<blockquote class="blockquote">
+<p>The key observation here is that, while the polynomial regression function is <strong>nonlinear in the variable</strong>, it is still <strong>linear in its coefficients</strong>, which makes it still solvable with ordinary least squares.</p>
+</blockquote>
+</section>
+</section>
+<section id="multinomial-logistic-regression" class="level2">
+<h2 class="anchored" data-anchor-id="multinomial-logistic-regression">Multinomial Logistic Regression</h2>
+<p>In many cases, we want to study the relationship between a set of <strong>continuous or categorical independent variable and a non-binary categorical dependent variable</strong>.</p>
+<p>Let us consider the <code>diabetes</code> dataset:</p>
+<div id="86036fe6" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Try loading the dataset</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>diabetes_data <span class="op">=</span> sm.datasets.get_rdataset(<span class="st">"Diabetes"</span>, <span class="st">"heplots"</span>).data</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>diabetes_data.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">relwt</th>
+<th data-quarto-table-cell-role="th">glufast</th>
+<th data-quarto-table-cell-role="th">glutest</th>
+<th data-quarto-table-cell-role="th">instest</th>
+<th data-quarto-table-cell-role="th">sspg</th>
+<th data-quarto-table-cell-role="th">group</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0.81</td>
+<td>80</td>
+<td>356</td>
+<td>124</td>
+<td>55</td>
+<td>Normal</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>0.95</td>
+<td>97</td>
+<td>289</td>
+<td>117</td>
+<td>76</td>
+<td>Normal</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>0.94</td>
+<td>105</td>
+<td>319</td>
+<td>143</td>
+<td>105</td>
+<td>Normal</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>1.04</td>
+<td>90</td>
+<td>356</td>
+<td>199</td>
+<td>108</td>
+<td>Normal</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>1.00</td>
+<td>90</td>
+<td>323</td>
+<td>240</td>
+<td>143</td>
+<td>Normal</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>This dataset contains clinical measurements from <span class="math inline">145</span> subjects, used to study glucose metabolism and insulin resistance.</p>
+<p>It was originally presented in <em>Data: A Collection of Problems from Many Fields</em> (Andrews &amp; Herzberg, 1985) and is included in the R package <strong>heplots</strong>.</p>
+<section id="variables" class="level3">
+<h3 class="anchored" data-anchor-id="variables">Variables</h3>
+<ul>
+<li><strong>relwt</strong>: Relative weight (ratio of actual to expected weight)<br>
+</li>
+<li><strong>glufast</strong>: Fasting plasma glucose level<br>
+</li>
+<li><strong>glutest</strong>: Glucose intolerance (oral glucose tolerance test area)<br>
+</li>
+<li><strong>instest</strong>: Insulin response (insulin area)<br>
+</li>
+<li><strong>sspg</strong>: Steady state plasma glucose (measure of insulin resistance)<br>
+</li>
+<li><strong>group</strong>: Diagnostic group
+<ul>
+<li><em>Normal</em><br>
+</li>
+<li><em>Chemical_Diabetic</em><br>
+</li>
+<li><em>Overt_Diabetic</em></li>
+</ul></li>
+</ul>
+<p>Let’s visualize the data:</p>
+<div id="737b0482" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>sns.pairplot(diabetes_data, hue<span class="op">=</span><span class="st">'group'</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10_extending_regression_files/figure-html/cell-10-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Differently from previous examples, our categorical variable contains three levels. Also, we can easily identify an interesting <strong>base class</strong>, i.e., the “Normal” group.</p>
+<p>We will define an extension of the logistic regression model, the multinomial logistic regression model, based on this concept of “base” class.</p>
+</section>
+<section id="the-multinomial-logistic-regression-model" class="level3">
+<h3 class="anchored" data-anchor-id="the-multinomial-logistic-regression-model">The Multinomial Logistic Regression Model</h3>
+<p>When the dependent variable can assume more than two values, <strong>we can define the multinomial logistic regression model</strong>. In this case, we select one of the values of the dependent variable <span class="math inline">Y</span> as <strong>a baseline class</strong> (e.g., the “Normal” group). Without loss of generality, let <span class="math inline">K</span> be the number of classes and let <span class="math inline">Y=1</span> be the baseline class. Recall that in the case of the logistic regressor, we modeled the logarithm of the odd as our linear function:</p>
+<p><span class="math display">\log \left(\frac{P(y=1|\mathbf{x})}{1-P(y=1|\mathbf{x})}\right) = \beta_0 + \beta_1 x_1 + \ldots + \beta_n x_n</span></p>
+<p>Since we have more than one possible outcomes for the dependent variable, rather than modeling the odds, a multinomial logistic regressor models the logarithm of the ratio between a given class <span class="math inline">k</span> and the baseline class <span class="math inline">1</span> as follows:</p>
+<p><span class="math display">\log\left( \frac{P(Y=k|X=\mathbf{x})}{P(Y=1|X=\mathbf{x})} \right) = \beta_{k0} + \beta_{k1} x_1 + \ldots + \beta_{kn} x_n</span></p>
+<p>Note that, in practice, we need to define a different linear combination for each class <span class="math inline">k = 1 \ldots K</span>, hence we need <span class="math inline">(n+1) \times (k-1)</span> parameters.</p>
+<p>Doing the math, it can be shown that:</p>
+<p><span class="math display"> P(Y=k|X=\mathbf{x}) = \frac{e^{\mathbf{\beta_k}^T\mathbf{X}}}{1+\sum_{l=2}^K \mathbf{e^{\beta_l^T\mathbf{X}}}}</span> <span class="math display"> P(Y=1|X=\mathbf{x}) = \frac{1}{1+\sum_{l=2}^K \mathbf{e^{\beta_l^T\mathbf{X}}}}</span></p>
+<p>Where <span class="math inline">\mathbf{\beta_k}=(\beta_0,\beta_1,\ldots,\beta_k)</span> and <span class="math inline">\mathbf{X}=(1,x_1,\ldots,x_n)</span>.</p>
+<p>These two expressions can be used to compute the probabilities of the classes once that the parameters have been estimated and <span class="math inline">\mathcal{x}</span> is observed.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+A note on the softmax parametrisation
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Machine learning usually writes this same model without a baseline class, giving every class its own coefficient vector:</p>
+<p><span class="math display">P(Y=k|X=\mathbf{x}) = \frac{e^{\mathbf{\beta}_k^T\mathbf{X}}}{\sum_{l=1}^{K} e^{\mathbf{\beta}_l^T\mathbf{X}}}</span></p>
+<p>This is the <strong>softmax</strong> form. It is the same model — a <em>reparametrisation</em>, and an <strong>overparametrised</strong> one: adding a constant vector to every <span class="math inline">\mathbf{\beta}_k</span> leaves all the probabilities unchanged, so the coefficients are identified only up to that shift. Choosing a baseline, as above, is exactly what removes the ambiguity, which is why statistics does it and why single coefficients can be read as log-odds ratios here and not there.</p>
+<p>The distinction matters when you read a library’s output — <code>scikit-learn</code> fits the softmax form, <code>statsmodels</code> the baseline form — but nothing in this course depends on it, and <strong>the exam does not ask about softmax</strong>.</p>
+</div>
+</div>
+<p>Let’s fit the following model:</p>
+<p><span class="math display">\text{group} = \beta_0 + \beta_1 \text{relwt} + \beta_1 \text{glutest}</span></p>
+<p>We obtain the following results:</p>
+<div id="709c9218" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Assume you already loaded the Diabetes dataset into diabetes_data</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Columns: relwt, glufast, glutest, instest, sspg, group</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Recode group into integers (baseline = Normal)</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>diabetes_data2 <span class="op">=</span> diabetes_data.copy()</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>diabetes_data2[<span class="st">'group'</span>] <span class="op">=</span> diabetes_data2[<span class="st">'group'</span>].<span class="bu">map</span>({</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Normal'</span>: <span class="dv">0</span>,</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Chemical_Diabetic'</span>: <span class="dv">1</span>,</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Overt_Diabetic'</span>: <span class="dv">2</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>}).astype(<span class="bu">int</span>)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit multinomial logistic regression</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> smf.mnlogit(<span class="st">"group ~ glutest"</span>, data<span class="op">=</span>diabetes_data2)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> model.fit()</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Summary with coefficients, standard errors, z-scores, p-values</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.summary())</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Likelihood ratio test for overall model fit</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Model Likelihood Ratio Test:"</span>)</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.llr, result.llr_pvalue)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Optimization terminated successfully.
+         Current function value: 0.100843
+         Iterations 14
+                          MNLogit Regression Results                          
+==============================================================================
+Dep. Variable:                  group   No. Observations:                  145
+Model:                        MNLogit   Df Residuals:                      141
+Method:                           MLE   Df Model:                            2
+Date:                Sat, 26 Sep 2026   Pseudo R-squ.:                  0.9013
+Time:                        16:16:25   Log-Likelihood:                -14.622
+converged:                       True   LL-Null:                       -148.10
+Covariance Type:            nonrobust   LLR p-value:                 1.076e-58
+==============================================================================
+   group=1       coef    std err          z      P&gt;|z|      [0.025      0.975]
+------------------------------------------------------------------------------
+Intercept    -90.3738     42.527     -2.125      0.034    -173.726      -7.022
+glutest        0.2153      0.101      2.128      0.033       0.017       0.413
+------------------------------------------------------------------------------
+   group=2       coef    std err          z      P&gt;|z|      [0.025      0.975]
+------------------------------------------------------------------------------
+Intercept   -109.8266     43.021     -2.553      0.011    -194.147     -25.506
+glutest        0.2471      0.102      2.428      0.015       0.048       0.447
+==============================================================================
+
+Model Likelihood Ratio Test:
+266.9538631863749 1.0757346252010753e-58</code></pre>
+</div>
+</div>
+<p>We can see that the model estimates two sets of coefficients: one for <code>group=1</code> (Chemical Diabetic) and one for <code>group=2</code> (Overt Diabetic). No coefficients are estimated for <code>group=0</code> (Normal), which serves as the baseline category. Let us interpret the results:</p>
+</section>
+<section id="model-overview" class="level3">
+<h3 class="anchored" data-anchor-id="model-overview">Model Overview</h3>
+<ul>
+<li><strong>Dependent variable</strong>: <code>group</code>, with three diagnostic categories</li>
+<li><strong>Predictors included</strong>: <code>glutest</code> (glucose intolerance)</li>
+<li><strong>Estimation method</strong>: Maximum Likelihood Estimation (MLE)</li>
+<li><strong>Convergence</strong>: Successful after 14 iterations</li>
+<li><strong>Log-likelihood</strong>: −14.622 (final value of our cost function)</li>
+<li><strong>Pseudo R-squared</strong>: 0.9013 (good explanatory power)</li>
+<li><strong>Likelihood Ratio Test</strong>:
+<ul>
+<li>Statistic: 266.95</li>
+<li>p-value: almost zero → highly significant improvement over the null model</li>
+</ul></li>
+</ul>
+</section>
+<section id="coefficient-interpretation" class="level3">
+<h3 class="anchored" data-anchor-id="coefficient-interpretation">Coefficient Interpretation</h3>
+<ul>
+<li>The intercept for <code>group=1</code> is -90.3738. This means that the odds of being <em>Chemical Diabetic</em> versus <em>Normal</em> are <span class="math inline">e^{-90.3738} \approx 0</span> when <code>glutest</code> is zero. This is an extremely low value, indicating that when <code>glutest</code> is zero, it is much more probable that the subject is <em>Normal</em> rather than <em>Chemical Diabetic</em>.</li>
+<li>The intercept for <code>group=2</code> is -109.8266. This means that the odds of being <em>Overt Diabetic</em> versus <em>Normal</em> are <span class="math inline">e^{-109.8266} \approx 0</span> when <code>glutest</code> is zero. This indicates that when everything is zero, it is much more probable that the subject is <em>Normal</em> rather than <em>Overt Diabetic</em>. Hence, when <code>glutest</code> is zero, the subject is almost certainly <em>Normal</em>.</li>
+<li>The coefficient 0.2153 for <code>glutest</code> in <code>group=1</code> suggests that a one-unit increase in <code>glutest</code> increases the odds of being <em>Chemical Diabetic</em> versus <em>Normal</em> by <span class="math inline">e^{0.2153} \approx 1.24</span>, an increase of about <strong>24%</strong>.</li>
+<li>The coefficient 0.2471 for <code>glutest</code> in <code>group=2</code> implies a similar increase in odds for <em>Overt Diabetic</em> versus <em>Normal</em>: <span class="math inline">e^{0.2471} \approx 1.28</span>, an increase of about <strong>28%</strong>.</li>
+</ul>
+</section>
+</section>
+<section id="geometrical-interpretation-of-the-coefficients-of-a-logistic-regressor" class="level2">
+<h2 class="anchored" data-anchor-id="geometrical-interpretation-of-the-coefficients-of-a-logistic-regressor">Geometrical Interpretation of the Coefficients of a Logistic Regressor</h2>
+<p>Similar to linear regression, also the coefficients of logistic regression have a geometrical interpretation, which is particularly interesting when treating the classifier from a purely predictive point of view. We will see that, while linear regression finds a «curve» that fits the data, logistic regression finds a hyperplane that separates the data.</p>
+<p>Let us consider a simple example with bi-dimensional data <span class="math inline">\mathbf{x} \in \mathfrak{R}^{2}</span> as the one shown in the following:</p>
+<div id="5ba9c2d8" class="cell" data-execution_count="11">
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10_extending_regression_files/figure-html/cell-12-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let us assume that we fit a logistic regressor model to this data</p>
+<p><span class="math display">P\left( y=1 | \mathbf{x} \right) = \frac{1}{1 + e^{- {(\beta}_{0} + \beta_{1}x_{1} + \beta_{2}x_{2})}}</span></p>
+<p>and find the following values for the parameters:</p>
+<p><span class="math display">\left\{ \begin{matrix}
+\beta_{0} = - 3.47 \\
+\beta_{1} = 1.17 \\
+\beta_{2} = 1.43 \\
+\end{matrix} \right.\ </span></p>
+<p>We know that these parameters allow to find a probability value according to the formula above. We can use these values to <strong>classify the observations</strong> <span class="math inline">\mathbf{x}</span>. In practice, a reasonable criterion to classify observations would be:</p>
+<p><span class="math display">\hat y = \begin{cases}1 &amp; \text{if } P(y=1|\mathbf{x}) \geq 0.5\\0 &amp; \text{otherwise}\end{cases}</span></p>
+<p>This makes sense as we are assigning the observations to the group for which the posterior probability <span class="math inline">P(y|\mathbf{x})</span> is higher.</p>
+<p>To understand how the data is classified, we can look at those points in which the classifier is uncertain, which is often called <strong>the decision boundary</strong>, i.e., those points in which <span class="math inline">P\left( y=1 | \mathbf{x} \right) = 0.5</span>.</p>
+<p>We note that:</p>
+<p><span class="math display">P\left(y=1 | \mathbf{x} \right) = 0.5 \Leftrightarrow e^{- (\beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2})} = 1 \Leftrightarrow 0 = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2}</span></p>
+<p>This last equation is the equation of a line (in the form <span class="math inline">ax + by + c = 0</span>). We can see it in explicit form:</p>
+<p><span class="math display">x_{2} = - \frac{\beta_{1}}{\beta_{2}}x_{1} - \frac{\beta_{0}}{\beta_{2}}</span></p>
+<p>So, we have found a line which has a</p>
+<ul>
+<li><p>Angular coefficient equal to <span class="math inline">- \frac{\beta_{1}}{\beta_{2}}</span>;</p></li>
+<li><p>Intercept equal to <span class="math inline">- \frac{\beta_{0}}{\beta_{2}}</span>;</p></li>
+</ul>
+<p>If we plot this line, we obtain the <strong>decision boundary</strong> which separates the elements from the two classes:</p>
+<div id="dbb9dcf1" class="cell" data-execution_count="12">
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10_extending_regression_files/figure-html/cell-13-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>As can be seen, the decision boundary found by a logistic regressor is a line. This is because <strong>a logistic regressor is a linear classifier</strong>, despite the logistic function is not linear!</p>
+</section>
+<section id="exercises" class="level2">
+<h2 class="anchored" data-anchor-id="exercises">Exercises</h2>
+<ol type="1">
+<li><strong>Interaction, read aloud.</strong> Fit <code>Fare ~ Age * C(Pclass)</code> on the Titanic data. Write one sentence saying what the interaction term means, without using the word “interaction”.</li>
+<li><strong>When an interaction is not needed.</strong> Fit the same model without the interaction and compare. Does the interaction earn its parameters? Justify the answer with something other than the p-value.</li>
+<li><strong>Polynomial degree.</strong> Fit polynomials of degree 1 to 6 to a relationship of your choice. Plot each one. Which degree would you defend to a colleague, and on what grounds — given that this chapter has no test set?</li>
+<li><strong>Multinomial coefficients.</strong> Fit a multinomial logistic regression of <code>Pclass</code> on <code>Fare</code> and <code>Age</code>. Interpret one coefficient with respect to the baseline category, then refit with a different baseline and confirm that the conclusions do not change.</li>
+</ol>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<ul>
+<li>James, Witten, Hastie, Tibshirani, Taylor. <em>An Introduction to Statistical Learning with Applications in Python</em>, sections 3.3 (interactions and polynomial terms) and 4.3 (multinomial logistic regression).</li>
+<li>Heumann, Schomaker, Shalabh. <em>Introduction to Statistics and Data Analysis</em>, chapter 11.</li>
+<li><code>statsmodels</code> formula API documentation, for the <code>*</code> and <code>:</code> operators.</li>
+</ul>
+
+
+<!-- -->
+
+</section>
+
+</main> <!-- /main -->
+<!--
+  Let KaTeX define its global on pages that also load RequireJS.
+
+  Quarto's Jupyter engine puts require.js in the <head> of any chapter rendered from a
+  notebook — fifteen of the twenty-five pages here, not only the one that uses Plotly.
+  KaTeX ships a UMD bundle: it checks for an AMD `define` first, and when it finds
+  RequireJS's it registers as an anonymous module instead of assigning `window.katex`.
+  RequireJS rejects the anonymous registration ("Mismatched anonymous define() module"),
+  so the global is never set, and the inline renderer Quarto emits right after it dies on
+  `ReferenceError: katex is not defined`. Every formula on every chapter page stayed as
+  raw LaTeX.
+
+  The fix is the standard one for a UMD library meeting RequireJS: hide `define` while
+  the bundle runs. The ordering this relies on is worth spelling out, because it is the
+  whole reason this file sits at the end of the body rather than in the header:
+
+    1. <head>: require.js runs, and window.define now carries .amd
+    2. <head>: katex.min.js is marked `defer`, so it is queued, not run
+    3. <head>: Quarto's renderer registers its DOMContentLoaded listener — first, so it
+       will also be the first to fire
+    4. <body>: any Plotly output calls require(...) during parsing, while define is
+       still intact
+    5. this file, parsed last: define is put aside
+    6. parsing ends, deferred scripts run: katex.min.js finds no AMD and sets the global
+    7. DOMContentLoaded: Quarto's renderer runs and finds katex
+    8. our listener, registered after Quarto's, hands define back
+
+  If Quarto ever stops marking katex.min.js `defer`, step 6 moves before step 5 and this
+  silently stops helping — the symptom is formulas showing as raw LaTeX again, and
+  `window.katex` being undefined in the console on a chapter page.
+-->
+<script>
+  (function () {
+    if (typeof window.define !== "function" || !window.define.amd) return;
+    var amdDefine = window.define;
+    window.define = undefined;
+    document.addEventListener("DOMContentLoaded", function () {
+      window.define = amdDefine;
+    });
+  })();
+</script>
+<script>
+// The repository and website icons under the logo lead off the site, so they open in a
+// new tab like every other external link. Quarto's `link-external-newwindow` covers the
+// page content only, not the sidebar tools, and the tools take no `target` option.
+document.querySelectorAll("a.quarto-navigation-tool[href^='http']").forEach(function (a) {
+  a.target = "_blank";
+  a.rel = "noopener";
+});
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/antoninofurnari\.github\.io\/fad-2627\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../notes/09_logistic_regression.html" class="pagination-link" aria-label="Logistic regression">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Logistic regression</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../notes/11_causal_analysis.html" class="pagination-link" aria-label="Causal analysis">
+        <span class="nav-page-text">Causal analysis</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="sourceCode" id="cb11" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Extending regression models: interactions, polynomial and multinomial terms"</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="an">stem:</span><span class="co"> 10_extending_regression</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="an">chapter:</span><span class="co"> 10</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co">  ipynb: default</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip icon=false}</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="fu">## Chapter resources</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Slides (PDF)</span><span class="co">](../files/slides/10_extending_regression.pdf)</span>{.btn .btn-sm .btn-primary}</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Open in Colab</span><span class="co">](https://colab.research.google.com/github/antoninofurnari/fad-2627/blob/main/notes/10_extending_regression.ipynb)</span>{.btn .btn-sm .btn-outline-primary}</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Download PDF</span><span class="co">](../files/chapters/10_extending_regression.pdf)</span>{.btn .btn-sm .btn-outline-primary .btn-chapter-pdf}</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Practice quiz</span><span class="co">](../quiz.html?bank=10)</span>{.btn .btn-sm .btn-outline-primary}</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Datasets are served by the site itself, so the same code runs here, on a</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="co"># local clone and on Colab. See site/data/MANIFEST.yml.</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>DATA <span class="op">=</span> <span class="st">"../data/"</span> <span class="cf">if</span> Path(<span class="st">"../data"</span>).is_dir() <span class="cf">else</span> <span class="st">"https://antoninofurnari.github.io/fad-2627/data/"</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Chapter 8</span><span class="co">](08_linear_regression.qmd)</span> and</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">chapter 9</span><span class="co">](09_logistic_regression.qmd)</span> introduced the two workhorse regression models</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>in their simplest form: one straight line, one logistic curve, each with its</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>coefficients read as a statement about the phenomenon. This chapter keeps that</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>statistical reading and relaxes three of its restrictions.</span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>**Interaction terms** let the effect of one variable depend on another — the honest way</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>to say "it depends". **Polynomial terms** let a relationship bend without abandoning</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>least squares. **Multinomial logistic regression** extends the logistic model from two</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>outcomes to many.</span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>All three are still about *explaining*: we fit with <span class="in">`statsmodels`</span>, read coefficients,</span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>and check whether they say something defensible.</span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Chapter 14</span><span class="co">](14_regression_for_prediction.qmd)</span> takes the same models and asks a</span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>different question — how well do they predict data they have never seen?</span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a><span class="fu">## Extending the Linear Model with Interaction Terms</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>A simple linear model assumes the effect of each predictor on $Y$ is **additive**. The formula</span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a>$$mpg = \beta_0 + \beta_1 \text{horsepower} + \beta_2 \text{weight}$$</span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a>assumes that the effect of 1 unit of <span class="in">`horsepower`</span> (which is $\beta_1$) is **constant**, regardless of the car's <span class="in">`weight`</span>.</span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a>Is that true? We can test this by adding an **interaction term**:</span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true" tabindex="-1"></a>$$mpg = \beta_0 + \beta_1 \text{horsepower} + \beta_2 \text{weight} + \beta_3 (\text{horsepower} \times \text{weight})$$</span>
+<span id="cb11-56"><a href="#cb11-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-59"><a href="#cb11-59" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-60"><a href="#cb11-60" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb11-61"><a href="#cb11-61" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb11-62"><a href="#cb11-62" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb11-63"><a href="#cb11-63" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb11-64"><a href="#cb11-64" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb11-65"><a href="#cb11-65" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb11-66"><a href="#cb11-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-67"><a href="#cb11-67" aria-hidden="true" tabindex="-1"></a><span class="co"># Load and clean the data (same as last lecture)</span></span>
+<span id="cb11-68"><a href="#cb11-68" aria-hidden="true" tabindex="-1"></a>mpg <span class="op">=</span> sns.load_dataset(<span class="st">'mpg'</span>)</span>
+<span id="cb11-69"><a href="#cb11-69" aria-hidden="true" tabindex="-1"></a>mpg <span class="op">=</span> mpg.drop(<span class="st">'name'</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb11-70"><a href="#cb11-70" aria-hidden="true" tabindex="-1"></a>mpg[<span class="st">'horsepower'</span>] <span class="op">=</span> pd.to_numeric(mpg[<span class="st">'horsepower'</span>], errors<span class="op">=</span><span class="st">'coerce'</span>)</span>
+<span id="cb11-71"><a href="#cb11-71" aria-hidden="true" tabindex="-1"></a>mpg <span class="op">=</span> mpg.dropna()</span>
+<span id="cb11-72"><a href="#cb11-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-73"><a href="#cb11-73" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit the simple additive model</span></span>
+<span id="cb11-74"><a href="#cb11-74" aria-hidden="true" tabindex="-1"></a>model_additive <span class="op">=</span> smf.ols(<span class="st">'mpg ~ horsepower + weight'</span>, data<span class="op">=</span>mpg).fit()</span>
+<span id="cb11-75"><a href="#cb11-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-76"><a href="#cb11-76" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit the new interaction model</span></span>
+<span id="cb11-77"><a href="#cb11-77" aria-hidden="true" tabindex="-1"></a>model_interaction <span class="op">=</span> smf.ols(<span class="st">'mpg ~ horsepower + weight + horsepower * weight'</span>, data<span class="op">=</span>mpg).fit()</span>
+<span id="cb11-78"><a href="#cb11-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-79"><a href="#cb11-79" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"--- Additive Model (R-squared) ---"</span>)</span>
+<span id="cb11-80"><a href="#cb11-80" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Adj. R-squared: </span><span class="sc">{</span>model_additive<span class="sc">.</span>rsquared_adj<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb11-81"><a href="#cb11-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-82"><a href="#cb11-82" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">--- Interaction Model (R-squared) ---"</span>)</span>
+<span id="cb11-83"><a href="#cb11-83" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Adj. R-squared: </span><span class="sc">{</span>model_interaction<span class="sc">.</span>rsquared_adj<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb11-84"><a href="#cb11-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-85"><a href="#cb11-85" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">--- Interaction Model Coefficients ---"</span>)</span>
+<span id="cb11-86"><a href="#cb11-86" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_interaction.summary().tables[<span class="dv">1</span>])</span>
+<span id="cb11-87"><a href="#cb11-87" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-88"><a href="#cb11-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-89"><a href="#cb11-89" aria-hidden="true" tabindex="-1"></a><span class="fu">### Interpreting the Interaction</span></span>
+<span id="cb11-90"><a href="#cb11-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-91"><a href="#cb11-91" aria-hidden="true" tabindex="-1"></a>Notice two things:</span>
+<span id="cb11-92"><a href="#cb11-92" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>The **Adj. R-squared** increased! This indicates the interaction model is a better fit.</span>
+<span id="cb11-93"><a href="#cb11-93" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>The p-value for the <span class="in">`horsepower:weight`</span> term is tiny ($&lt; 0.001$). This confirms the interaction is statistically significant.</span>
+<span id="cb11-94"><a href="#cb11-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-95"><a href="#cb11-95" aria-hidden="true" tabindex="-1"></a>But how do we interpret the coefficient for <span class="in">`horsepower`</span>?</span>
+<span id="cb11-96"><a href="#cb11-96" aria-hidden="true" tabindex="-1"></a>We can rewrite the formula:</span>
+<span id="cb11-97"><a href="#cb11-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-98"><a href="#cb11-98" aria-hidden="true" tabindex="-1"></a>$$mpg = \beta_0 + (\beta_1 + \beta_3 \times \text{weight}) \times \text{horsepower} + \beta_2 \text{weight}$$</span>
+<span id="cb11-99"><a href="#cb11-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-100"><a href="#cb11-100" aria-hidden="true" tabindex="-1"></a>The "effect" of <span class="in">`horsepower`</span> is no longer a single number, $\beta_1$. It is now $(\beta_1 + \beta_3 \times \text{weight})$. This means the effect of <span class="in">`horsepower`</span> *depends on* the <span class="in">`weight`</span> of the car.</span>
+<span id="cb11-101"><a href="#cb11-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-102"><a href="#cb11-102" aria-hidden="true" tabindex="-1"></a>In practice, **when we increase `weight` by one unit, we increase the effect of `horsepower` on `mpg` by $\beta_3$ units**. This means that for heavier cars, <span class="in">`horsepower`</span> has a less negative effect on <span class="in">`mpg`</span>.</span>
+<span id="cb11-103"><a href="#cb11-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-104"><a href="#cb11-104" aria-hidden="true" tabindex="-1"></a>This makes sense mechanically: in a very heavy car, horsepower is needed just to move it, so the efficiency penalty is smaller compared to a light car where extra horsepower is “overkill.</span>
+<span id="cb11-105"><a href="#cb11-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-106"><a href="#cb11-106" aria-hidden="true" tabindex="-1"></a>Let's diagnose our residuals to see if we gained something:</span>
+<span id="cb11-107"><a href="#cb11-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-110"><a href="#cb11-110" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-111"><a href="#cb11-111" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb11-112"><a href="#cb11-112" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsmodels.formula.api <span class="im">import</span> ols</span>
+<span id="cb11-113"><a href="#cb11-113" aria-hidden="true" tabindex="-1"></a>data<span class="op">=</span>mpg</span>
+<span id="cb11-114"><a href="#cb11-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-115"><a href="#cb11-115" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">14</span>,<span class="dv">10</span>))</span>
+<span id="cb11-116"><a href="#cb11-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-117"><a href="#cb11-117" aria-hidden="true" tabindex="-1"></a>fitted <span class="op">=</span> ols(<span class="st">"mpg ~ horsepower + weight"</span>, data.dropna()).fit().fittedvalues.fillna(<span class="dv">0</span>)</span>
+<span id="cb11-118"><a href="#cb11-118" aria-hidden="true" tabindex="-1"></a>sns.residplot(x<span class="op">=</span>fitted, y<span class="op">=</span><span class="st">'mpg'</span>, data<span class="op">=</span>data.dropna(),lowess<span class="op">=</span><span class="va">True</span>,line_kws<span class="op">=</span>{<span class="st">'color'</span>: <span class="st">'red'</span>, <span class="st">'lw'</span>: <span class="dv">1</span>, <span class="st">'alpha'</span>: <span class="fl">0.8</span>}, ax<span class="op">=</span>plt.subplot(<span class="dv">221</span>))</span>
+<span id="cb11-119"><a href="#cb11-119" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"$mpg = </span><span class="ch">\\</span><span class="st">beta_0 + </span><span class="ch">\\</span><span class="st">beta_1 horsepower + </span><span class="ch">\\</span><span class="st">beta_2 weight$"</span>)</span>
+<span id="cb11-120"><a href="#cb11-120" aria-hidden="true" tabindex="-1"></a>sm.qqplot(fitted<span class="op">-</span>data.dropna()[<span class="st">'mpg'</span>], line<span class="op">=</span><span class="st">'45'</span>,fit<span class="op">=</span><span class="va">True</span>, ax<span class="op">=</span>plt.subplot(<span class="dv">222</span>))</span>
+<span id="cb11-121"><a href="#cb11-121" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"$mpg = </span><span class="ch">\\</span><span class="st">beta_0 + </span><span class="ch">\\</span><span class="st">beta_1 horsepower + </span><span class="ch">\\</span><span class="st">beta_2 weight$"</span>)</span>
+<span id="cb11-122"><a href="#cb11-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-123"><a href="#cb11-123" aria-hidden="true" tabindex="-1"></a>fitted <span class="op">=</span> ols(<span class="st">"mpg ~ horsepower + weight + horsepower*weight"</span>, data.dropna()).fit().fittedvalues.fillna(<span class="dv">0</span>)</span>
+<span id="cb11-124"><a href="#cb11-124" aria-hidden="true" tabindex="-1"></a>sns.residplot(x<span class="op">=</span>fitted, y<span class="op">=</span><span class="st">'mpg'</span>, data<span class="op">=</span>data.dropna(),lowess<span class="op">=</span><span class="va">True</span>,line_kws<span class="op">=</span>{<span class="st">'color'</span>: <span class="st">'red'</span>, <span class="st">'lw'</span>: <span class="dv">1</span>, <span class="st">'alpha'</span>: <span class="fl">0.8</span>}, ax<span class="op">=</span>plt.subplot(<span class="dv">223</span>))</span>
+<span id="cb11-125"><a href="#cb11-125" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"$mpg = </span><span class="ch">\\</span><span class="st">beta_0 + </span><span class="ch">\\</span><span class="st">beta_1 horsepower + </span><span class="ch">\\</span><span class="st">beta_2 weight + </span><span class="ch">\\</span><span class="st">beta_3 horsepower </span><span class="ch">\\</span><span class="st">times weight$"</span>)</span>
+<span id="cb11-126"><a href="#cb11-126" aria-hidden="true" tabindex="-1"></a>sm.qqplot(fitted<span class="op">-</span>data.dropna()[<span class="st">'mpg'</span>], line<span class="op">=</span><span class="st">'45'</span>,fit<span class="op">=</span><span class="va">True</span>, ax<span class="op">=</span>plt.subplot(<span class="dv">224</span>))</span>
+<span id="cb11-127"><a href="#cb11-127" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"$mpg = </span><span class="ch">\\</span><span class="st">beta_0 + </span><span class="ch">\\</span><span class="st">beta_1 horsepower + </span><span class="ch">\\</span><span class="st">beta_2 weight + </span><span class="ch">\\</span><span class="st">beta_3 horsepower </span><span class="ch">\\</span><span class="st">times weight$"</span>)</span>
+<span id="cb11-128"><a href="#cb11-128" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb11-129"><a href="#cb11-129" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-130"><a href="#cb11-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-131"><a href="#cb11-131" aria-hidden="true" tabindex="-1"></a>The situation improved! We now have a better model, even if not perfect.</span>
+<span id="cb11-132"><a href="#cb11-132" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-133"><a href="#cb11-133" aria-hidden="true" tabindex="-1"></a><span class="fu">## Quadratic and Polynomial Regression</span></span>
+<span id="cb11-134"><a href="#cb11-134" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-135"><a href="#cb11-135" aria-hidden="true" tabindex="-1"></a>We will now take another route to address our nonlinear problem. Let's have a look at the relationship between <span class="in">`mpg`</span> and <span class="in">`horsepower`</span>:</span>
+<span id="cb11-136"><a href="#cb11-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-139"><a href="#cb11-139" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-140"><a href="#cb11-140" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(x<span class="op">=</span><span class="st">'horsepower'</span>,y<span class="op">=</span><span class="st">'mpg'</span>,data<span class="op">=</span>data)</span>
+<span id="cb11-141"><a href="#cb11-141" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb11-142"><a href="#cb11-142" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-143"><a href="#cb11-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-144"><a href="#cb11-144" aria-hidden="true" tabindex="-1"></a>This relationship does not look linear. It looks instead as a quadratic, which would be fit by the following model:</span>
+<span id="cb11-145"><a href="#cb11-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-146"><a href="#cb11-146" aria-hidden="true" tabindex="-1"></a>$$mpg = \beta_0 + \beta_1 horsepower + \beta_2 horsepower^2$$</span>
+<span id="cb11-147"><a href="#cb11-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-148"><a href="#cb11-148" aria-hidden="true" tabindex="-1"></a>Again, the model above is nonlinear in <span class="in">`horsepower`</span>, but we can still fit it with a linear regressor if we add a new variable $z=horsepower^2$. </span>
+<span id="cb11-149"><a href="#cb11-149" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-150"><a href="#cb11-150" aria-hidden="true" tabindex="-1"></a>The fit model will obtain $R^2=0.688$, larger than the $R^2=0.606$ obtained by the base model ($mpg = \beta_0 + \beta_1 horsepower$). Both have a large F-statistic.</span>
+<span id="cb11-151"><a href="#cb11-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-152"><a href="#cb11-152" aria-hidden="true" tabindex="-1"></a>The estimated coefficients are:</span>
+<span id="cb11-153"><a href="#cb11-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-156"><a href="#cb11-156" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-157"><a href="#cb11-157" aria-hidden="true" tabindex="-1"></a>ols(<span class="st">"mpg ~ horsepower + I(horsepower**2)"</span>, data).fit().summary().tables[<span class="dv">1</span>]</span>
+<span id="cb11-158"><a href="#cb11-158" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-159"><a href="#cb11-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-160"><a href="#cb11-160" aria-hidden="true" tabindex="-1"></a>The coefficients now describe the quadratic:</span>
+<span id="cb11-161"><a href="#cb11-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-162"><a href="#cb11-162" aria-hidden="true" tabindex="-1"></a>$$y = 56.9001 - 0.4662 x + 0.0012 x^2$$</span>
+<span id="cb11-163"><a href="#cb11-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-164"><a href="#cb11-164" aria-hidden="true" tabindex="-1"></a>If we plot it on the data, we obtain the following:</span>
+<span id="cb11-165"><a href="#cb11-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-168"><a href="#cb11-168" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-169"><a href="#cb11-169" aria-hidden="true" tabindex="-1"></a>model<span class="op">=</span>ols(<span class="st">"mpg ~ horsepower + I(horsepower**2)"</span>, data).fit()</span>
+<span id="cb11-170"><a href="#cb11-170" aria-hidden="true" tabindex="-1"></a>b0, b1, b2 <span class="op">=</span> model.params.values</span>
+<span id="cb11-171"><a href="#cb11-171" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(x<span class="op">=</span><span class="st">'horsepower'</span>,y<span class="op">=</span><span class="st">'mpg'</span>,data<span class="op">=</span>data)</span>
+<span id="cb11-172"><a href="#cb11-172" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="dv">40</span>,<span class="dv">240</span>,<span class="dv">200</span>)</span>
+<span id="cb11-173"><a href="#cb11-173" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> b0<span class="op">+</span>b1<span class="op">*</span>x<span class="op">+</span>b2<span class="op">*</span>x<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb11-174"><a href="#cb11-174" aria-hidden="true" tabindex="-1"></a>plt.plot(x,y,<span class="st">'r'</span>)</span>
+<span id="cb11-175"><a href="#cb11-175" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb11-176"><a href="#cb11-176" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-177"><a href="#cb11-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-178"><a href="#cb11-178" aria-hidden="true" tabindex="-1"></a><span class="fu">### Polynomial Regression</span></span>
+<span id="cb11-179"><a href="#cb11-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-180"><a href="#cb11-180" aria-hidden="true" tabindex="-1"></a>In general, we can fit a polynomial model to the data, choosing a suitable degree $d$. For instance, for $d=4$ we have:</span>
+<span id="cb11-181"><a href="#cb11-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-182"><a href="#cb11-182" aria-hidden="true" tabindex="-1"></a>$$mpg = \beta_0 + \beta_1 horsepower + \beta_2 horsepower^2 + \beta_3 horsepower^3 + \beta_4 horsepower^4$$</span>
+<span id="cb11-183"><a href="#cb11-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-184"><a href="#cb11-184" aria-hidden="true" tabindex="-1"></a>which identifies the following fit:</span>
+<span id="cb11-185"><a href="#cb11-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-188"><a href="#cb11-188" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-189"><a href="#cb11-189" aria-hidden="true" tabindex="-1"></a>model<span class="op">=</span>ols(<span class="st">"mpg ~ horsepower + I(horsepower**2) + I(horsepower**3) + I(horsepower**4)"</span>, data).fit()</span>
+<span id="cb11-190"><a href="#cb11-190" aria-hidden="true" tabindex="-1"></a>b0, b1, b2, b3,b4 <span class="op">=</span> model.params.values</span>
+<span id="cb11-191"><a href="#cb11-191" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(x<span class="op">=</span><span class="st">'horsepower'</span>,y<span class="op">=</span><span class="st">'mpg'</span>,data<span class="op">=</span>data)</span>
+<span id="cb11-192"><a href="#cb11-192" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.linspace(<span class="dv">40</span>,<span class="dv">240</span>,<span class="dv">200</span>)</span>
+<span id="cb11-193"><a href="#cb11-193" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> b0<span class="op">+</span>b1<span class="op">*</span>x<span class="op">+</span>b2<span class="op">*</span>x<span class="op">**</span><span class="dv">2</span><span class="op">+</span>b3<span class="op">*</span>x<span class="op">**</span><span class="dv">3</span><span class="op">+</span>b4<span class="op">*</span>x<span class="op">**</span><span class="dv">4</span></span>
+<span id="cb11-194"><a href="#cb11-194" aria-hidden="true" tabindex="-1"></a>plt.plot(x,y,<span class="st">'r'</span>)</span>
+<span id="cb11-195"><a href="#cb11-195" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb11-196"><a href="#cb11-196" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-197"><a href="#cb11-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-198"><a href="#cb11-198" aria-hidden="true" tabindex="-1"></a>This approach is known as **polynomial regression** and allows to turn the linear regression into a nonlinear model. Note that, when we have more variables, polynomial regression also includes interaction terms. For instance, the linear model:</span>
+<span id="cb11-199"><a href="#cb11-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-200"><a href="#cb11-200" aria-hidden="true" tabindex="-1"></a>$$y = \beta_0 + \beta_1x + \beta_2y$$</span>
+<span id="cb11-201"><a href="#cb11-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-202"><a href="#cb11-202" aria-hidden="true" tabindex="-1"></a>becomes the following polynomial model of degree $2$:</span>
+<span id="cb11-203"><a href="#cb11-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-204"><a href="#cb11-204" aria-hidden="true" tabindex="-1"></a>$$y = \beta_0 + \beta_1x + \beta_2y + \beta_3x^2 + \beta_4y^2 + \beta_5 xy$$</span>
+<span id="cb11-205"><a href="#cb11-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-206"><a href="#cb11-206" aria-hidden="true" tabindex="-1"></a>As usual, we only have to add new variables for the squared and interaction term and solve the problem as a linear regression one. This is easily handled by libraries. Note that, as the number of variables increases, the number of terms to add for a given degree also increases.</span>
+<span id="cb11-207"><a href="#cb11-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-208"><a href="#cb11-208" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; The key observation here is that, while the polynomial regression function is **nonlinear in the variable**, it is still **linear in its coefficients**, which makes it still solvable with ordinary least squares.</span></span>
+<span id="cb11-209"><a href="#cb11-209" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-210"><a href="#cb11-210" aria-hidden="true" tabindex="-1"></a><span class="fu">## Multinomial Logistic Regression</span></span>
+<span id="cb11-211"><a href="#cb11-211" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-212"><a href="#cb11-212" aria-hidden="true" tabindex="-1"></a>In many cases, we want to study the relationship between a set of **continuous or categorical independent variable and a non-binary categorical dependent variable**. </span>
+<span id="cb11-213"><a href="#cb11-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-214"><a href="#cb11-214" aria-hidden="true" tabindex="-1"></a>Let us consider the <span class="in">`diabetes`</span> dataset:</span>
+<span id="cb11-215"><a href="#cb11-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-218"><a href="#cb11-218" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-219"><a href="#cb11-219" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb11-220"><a href="#cb11-220" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-221"><a href="#cb11-221" aria-hidden="true" tabindex="-1"></a><span class="co"># Try loading the dataset</span></span>
+<span id="cb11-222"><a href="#cb11-222" aria-hidden="true" tabindex="-1"></a>diabetes_data <span class="op">=</span> sm.datasets.get_rdataset(<span class="st">"Diabetes"</span>, <span class="st">"heplots"</span>).data</span>
+<span id="cb11-223"><a href="#cb11-223" aria-hidden="true" tabindex="-1"></a>diabetes_data.head()</span>
+<span id="cb11-224"><a href="#cb11-224" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-225"><a href="#cb11-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-226"><a href="#cb11-226" aria-hidden="true" tabindex="-1"></a>This dataset contains clinical measurements from $145$ subjects, used to study glucose metabolism and insulin resistance.  </span>
+<span id="cb11-227"><a href="#cb11-227" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-228"><a href="#cb11-228" aria-hidden="true" tabindex="-1"></a>It was originally presented in *Data: A Collection of Problems from Many Fields* (Andrews &amp; Herzberg, 1985) and is included in the R package **heplots**.</span>
+<span id="cb11-229"><a href="#cb11-229" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-230"><a href="#cb11-230" aria-hidden="true" tabindex="-1"></a><span class="fu">### Variables</span></span>
+<span id="cb11-231"><a href="#cb11-231" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**relwt**: Relative weight (ratio of actual to expected weight)  </span>
+<span id="cb11-232"><a href="#cb11-232" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**glufast**: Fasting plasma glucose level  </span>
+<span id="cb11-233"><a href="#cb11-233" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**glutest**: Glucose intolerance (oral glucose tolerance test area)  </span>
+<span id="cb11-234"><a href="#cb11-234" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**instest**: Insulin response (insulin area)  </span>
+<span id="cb11-235"><a href="#cb11-235" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**sspg**: Steady state plasma glucose (measure of insulin resistance)  </span>
+<span id="cb11-236"><a href="#cb11-236" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**group**: Diagnostic group  </span>
+<span id="cb11-237"><a href="#cb11-237" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>*Normal*  </span>
+<span id="cb11-238"><a href="#cb11-238" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>*Chemical_Diabetic*  </span>
+<span id="cb11-239"><a href="#cb11-239" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>*Overt_Diabetic*</span>
+<span id="cb11-240"><a href="#cb11-240" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-241"><a href="#cb11-241" aria-hidden="true" tabindex="-1"></a>Let's visualize the data:</span>
+<span id="cb11-242"><a href="#cb11-242" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-245"><a href="#cb11-245" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-246"><a href="#cb11-246" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb11-247"><a href="#cb11-247" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb11-248"><a href="#cb11-248" aria-hidden="true" tabindex="-1"></a>sns.pairplot(diabetes_data, hue<span class="op">=</span><span class="st">'group'</span>)</span>
+<span id="cb11-249"><a href="#cb11-249" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb11-250"><a href="#cb11-250" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-251"><a href="#cb11-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-252"><a href="#cb11-252" aria-hidden="true" tabindex="-1"></a>Differently from previous examples, our categorical variable contains three levels. Also, we can easily identify an interesting **base class**, i.e., the "Normal" group.</span>
+<span id="cb11-253"><a href="#cb11-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-254"><a href="#cb11-254" aria-hidden="true" tabindex="-1"></a>We will define an extension of the logistic regression model, the multinomial logistic regression model, based on this concept of "base" class.</span>
+<span id="cb11-255"><a href="#cb11-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-256"><a href="#cb11-256" aria-hidden="true" tabindex="-1"></a><span class="fu">### The Multinomial Logistic Regression Model</span></span>
+<span id="cb11-257"><a href="#cb11-257" aria-hidden="true" tabindex="-1"></a>When the dependent variable can assume more than two values, **we can define the multinomial logistic regression model**. In this case, we select one of the values of the dependent variable $Y$ as **a baseline class** (e.g., the "Normal" group). Without loss of generality, let $K$ be the number of classes and let $Y=1$ be the baseline class. Recall that in the case of the logistic regressor, we modeled the logarithm of the odd as our linear function:</span>
+<span id="cb11-258"><a href="#cb11-258" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-259"><a href="#cb11-259" aria-hidden="true" tabindex="-1"></a>$$\log \left(\frac{P(y=1|\mathbf{x})}{1-P(y=1|\mathbf{x})}\right) = \beta_0 + \beta_1 x_1 + \ldots + \beta_n x_n$$</span>
+<span id="cb11-260"><a href="#cb11-260" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-261"><a href="#cb11-261" aria-hidden="true" tabindex="-1"></a>Since we have more than one possible outcomes for the dependent variable, rather than modeling the odds, a multinomial logistic regressor models the logarithm of the ratio between a given class $k$ and the baseline class $1$ as follows:</span>
+<span id="cb11-262"><a href="#cb11-262" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-263"><a href="#cb11-263" aria-hidden="true" tabindex="-1"></a>$$\log\left( \frac{P(Y=k|X=\mathbf{x})}{P(Y=1|X=\mathbf{x})} \right) = \beta_{k0} + \beta_{k1} x_1 + \ldots + \beta_{kn} x_n$$</span>
+<span id="cb11-264"><a href="#cb11-264" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-265"><a href="#cb11-265" aria-hidden="true" tabindex="-1"></a>Note that, in practice, we need to define a different linear combination for each class $k = 1 \ldots K$, hence we need $(n+1) \times (k-1)$ parameters.</span>
+<span id="cb11-266"><a href="#cb11-266" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-267"><a href="#cb11-267" aria-hidden="true" tabindex="-1"></a>Doing the math, it can be shown that:</span>
+<span id="cb11-268"><a href="#cb11-268" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-269"><a href="#cb11-269" aria-hidden="true" tabindex="-1"></a>$$ P(Y=k|X=\mathbf{x}) = \frac{e^{\mathbf{\beta_k}^T\mathbf{X}}}{1+\sum_{l=2}^K \mathbf{e^{\beta_l^T\mathbf{X}}}}$$</span>
+<span id="cb11-270"><a href="#cb11-270" aria-hidden="true" tabindex="-1"></a>$$ P(Y=1|X=\mathbf{x}) = \frac{1}{1+\sum_{l=2}^K \mathbf{e^{\beta_l^T\mathbf{X}}}}$$</span>
+<span id="cb11-271"><a href="#cb11-271" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-272"><a href="#cb11-272" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-273"><a href="#cb11-273" aria-hidden="true" tabindex="-1"></a>Where $\mathbf{\beta_k}=(\beta_0,\beta_1,\ldots,\beta_k)$ and $\mathbf{X}=(1,x_1,\ldots,x_n)$.</span>
+<span id="cb11-274"><a href="#cb11-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-275"><a href="#cb11-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-276"><a href="#cb11-276" aria-hidden="true" tabindex="-1"></a>These two expressions can be used to compute the probabilities of the classes once that the parameters have been estimated and $\mathcal{x}$ is observed.</span>
+<span id="cb11-277"><a href="#cb11-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-278"><a href="#cb11-278" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb11-279"><a href="#cb11-279" aria-hidden="true" tabindex="-1"></a><span class="fu">## A note on the softmax parametrisation</span></span>
+<span id="cb11-280"><a href="#cb11-280" aria-hidden="true" tabindex="-1"></a>Machine learning usually writes this same model without a baseline class, giving every</span>
+<span id="cb11-281"><a href="#cb11-281" aria-hidden="true" tabindex="-1"></a>class its own coefficient vector:</span>
+<span id="cb11-282"><a href="#cb11-282" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-283"><a href="#cb11-283" aria-hidden="true" tabindex="-1"></a>$$P(Y=k|X=\mathbf{x}) = \frac{e^{\mathbf{\beta}_k^T\mathbf{X}}}{\sum_{l=1}^{K} e^{\mathbf{\beta}_l^T\mathbf{X}}}$$</span>
+<span id="cb11-284"><a href="#cb11-284" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-285"><a href="#cb11-285" aria-hidden="true" tabindex="-1"></a>This is the **softmax** form. It is the same model — a *reparametrisation*, and an</span>
+<span id="cb11-286"><a href="#cb11-286" aria-hidden="true" tabindex="-1"></a>**overparametrised** one: adding a constant vector to every $\mathbf{\beta}_k$ leaves</span>
+<span id="cb11-287"><a href="#cb11-287" aria-hidden="true" tabindex="-1"></a>all the probabilities unchanged, so the coefficients are identified only up to that</span>
+<span id="cb11-288"><a href="#cb11-288" aria-hidden="true" tabindex="-1"></a>shift. Choosing a baseline, as above, is exactly what removes the ambiguity, which is</span>
+<span id="cb11-289"><a href="#cb11-289" aria-hidden="true" tabindex="-1"></a>why statistics does it and why single coefficients can be read as log-odds ratios here</span>
+<span id="cb11-290"><a href="#cb11-290" aria-hidden="true" tabindex="-1"></a>and not there.</span>
+<span id="cb11-291"><a href="#cb11-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-292"><a href="#cb11-292" aria-hidden="true" tabindex="-1"></a>The distinction matters when you read a library's output — <span class="in">`scikit-learn`</span> fits the</span>
+<span id="cb11-293"><a href="#cb11-293" aria-hidden="true" tabindex="-1"></a>softmax form, <span class="in">`statsmodels`</span> the baseline form — but nothing in this course depends on</span>
+<span id="cb11-294"><a href="#cb11-294" aria-hidden="true" tabindex="-1"></a>it, and **the exam does not ask about softmax**.</span>
+<span id="cb11-295"><a href="#cb11-295" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb11-296"><a href="#cb11-296" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-297"><a href="#cb11-297" aria-hidden="true" tabindex="-1"></a>Let's fit the following model:</span>
+<span id="cb11-298"><a href="#cb11-298" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-299"><a href="#cb11-299" aria-hidden="true" tabindex="-1"></a>$$\text{group} = \beta_0 + \beta_1 \text{relwt} + \beta_1 \text{glutest}$$</span>
+<span id="cb11-300"><a href="#cb11-300" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-301"><a href="#cb11-301" aria-hidden="true" tabindex="-1"></a>We obtain the following results:</span>
+<span id="cb11-302"><a href="#cb11-302" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-305"><a href="#cb11-305" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-306"><a href="#cb11-306" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb11-307"><a href="#cb11-307" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb11-308"><a href="#cb11-308" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb11-309"><a href="#cb11-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-310"><a href="#cb11-310" aria-hidden="true" tabindex="-1"></a><span class="co"># Assume you already loaded the Diabetes dataset into diabetes_data</span></span>
+<span id="cb11-311"><a href="#cb11-311" aria-hidden="true" tabindex="-1"></a><span class="co"># Columns: relwt, glufast, glutest, instest, sspg, group</span></span>
+<span id="cb11-312"><a href="#cb11-312" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-313"><a href="#cb11-313" aria-hidden="true" tabindex="-1"></a><span class="co"># Recode group into integers (baseline = Normal)</span></span>
+<span id="cb11-314"><a href="#cb11-314" aria-hidden="true" tabindex="-1"></a>diabetes_data2 <span class="op">=</span> diabetes_data.copy()</span>
+<span id="cb11-315"><a href="#cb11-315" aria-hidden="true" tabindex="-1"></a>diabetes_data2[<span class="st">'group'</span>] <span class="op">=</span> diabetes_data2[<span class="st">'group'</span>].<span class="bu">map</span>({</span>
+<span id="cb11-316"><a href="#cb11-316" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Normal'</span>: <span class="dv">0</span>,</span>
+<span id="cb11-317"><a href="#cb11-317" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Chemical_Diabetic'</span>: <span class="dv">1</span>,</span>
+<span id="cb11-318"><a href="#cb11-318" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Overt_Diabetic'</span>: <span class="dv">2</span></span>
+<span id="cb11-319"><a href="#cb11-319" aria-hidden="true" tabindex="-1"></a>}).astype(<span class="bu">int</span>)</span>
+<span id="cb11-320"><a href="#cb11-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-321"><a href="#cb11-321" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit multinomial logistic regression</span></span>
+<span id="cb11-322"><a href="#cb11-322" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> smf.mnlogit(<span class="st">"group ~ glutest"</span>, data<span class="op">=</span>diabetes_data2)</span>
+<span id="cb11-323"><a href="#cb11-323" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> model.fit()</span>
+<span id="cb11-324"><a href="#cb11-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-325"><a href="#cb11-325" aria-hidden="true" tabindex="-1"></a><span class="co"># Summary with coefficients, standard errors, z-scores, p-values</span></span>
+<span id="cb11-326"><a href="#cb11-326" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.summary())</span>
+<span id="cb11-327"><a href="#cb11-327" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-328"><a href="#cb11-328" aria-hidden="true" tabindex="-1"></a><span class="co"># Likelihood ratio test for overall model fit</span></span>
+<span id="cb11-329"><a href="#cb11-329" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Model Likelihood Ratio Test:"</span>)</span>
+<span id="cb11-330"><a href="#cb11-330" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.llr, result.llr_pvalue)</span>
+<span id="cb11-331"><a href="#cb11-331" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-332"><a href="#cb11-332" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-333"><a href="#cb11-333" aria-hidden="true" tabindex="-1"></a>We can see that the model estimates two sets of coefficients: one for <span class="in">`group=1`</span> (Chemical Diabetic) and one for <span class="in">`group=2`</span> (Overt Diabetic). No coefficients are estimated for <span class="in">`group=0`</span> (Normal), which serves as the baseline category. Let us interpret the results:</span>
+<span id="cb11-334"><a href="#cb11-334" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-335"><a href="#cb11-335" aria-hidden="true" tabindex="-1"></a><span class="fu">### Model Overview</span></span>
+<span id="cb11-336"><a href="#cb11-336" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Dependent variable**: <span class="in">`group`</span>, with three diagnostic categories</span>
+<span id="cb11-337"><a href="#cb11-337" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Predictors included**: <span class="in">`glutest`</span> (glucose intolerance)</span>
+<span id="cb11-338"><a href="#cb11-338" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Estimation method**: Maximum Likelihood Estimation (MLE)</span>
+<span id="cb11-339"><a href="#cb11-339" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Convergence**: Successful after 14 iterations</span>
+<span id="cb11-340"><a href="#cb11-340" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Log-likelihood**: −14.622 (final value of our cost function)</span>
+<span id="cb11-341"><a href="#cb11-341" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Pseudo R-squared**: 0.9013 (good explanatory power)</span>
+<span id="cb11-342"><a href="#cb11-342" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Likelihood Ratio Test**:</span>
+<span id="cb11-343"><a href="#cb11-343" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>Statistic: 266.95</span>
+<span id="cb11-344"><a href="#cb11-344" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>p-value: almost zero → highly significant improvement over the null model</span>
+<span id="cb11-345"><a href="#cb11-345" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-346"><a href="#cb11-346" aria-hidden="true" tabindex="-1"></a><span class="fu">### Coefficient Interpretation</span></span>
+<span id="cb11-347"><a href="#cb11-347" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span>The intercept for <span class="in">`group=1`</span> is -90.3738. This means that the odds of being *Chemical Diabetic* versus *Normal* are</span>
+<span id="cb11-348"><a href="#cb11-348" aria-hidden="true" tabindex="-1"></a>  $e^{-90.3738} \approx 0$ when <span class="in">`glutest`</span> is zero. This is an extremely low value, indicating that when <span class="in">`glutest`</span> is zero, it is much more probable that the subject is *Normal* rather than *Chemical Diabetic*.</span>
+<span id="cb11-349"><a href="#cb11-349" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span>The intercept for <span class="in">`group=2`</span> is -109.8266. This means that the odds of being *Overt Diabetic* versus *Normal* are</span>
+<span id="cb11-350"><a href="#cb11-350" aria-hidden="true" tabindex="-1"></a>  $e^{-109.8266} \approx 0$ when <span class="in">`glutest`</span> is zero. This indicates that when everything is zero, it is much more probable that the subject is *Normal* rather than *Overt Diabetic*. Hence, when `glutest` is zero, the subject is almost certainly *Normal*.</span>
+<span id="cb11-351"><a href="#cb11-351" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span>The coefficient 0.2153 for <span class="in">`glutest`</span> in <span class="in">`group=1`</span> suggests that a one-unit increase in <span class="in">`glutest`</span> increases the odds of being *Chemical Diabetic* versus *Normal* by</span>
+<span id="cb11-352"><a href="#cb11-352" aria-hidden="true" tabindex="-1"></a>  $e^{0.2153} \approx 1.24$, an increase of about **24%**.</span>
+<span id="cb11-353"><a href="#cb11-353" aria-hidden="true" tabindex="-1"></a><span class="ss">* </span>The coefficient 0.2471 for <span class="in">`glutest`</span> in <span class="in">`group=2`</span> implies a similar increase in odds for *Overt Diabetic* versus *Normal*:</span>
+<span id="cb11-354"><a href="#cb11-354" aria-hidden="true" tabindex="-1"></a>  $e^{0.2471} \approx 1.28$, an increase of about **28%**.</span>
+<span id="cb11-355"><a href="#cb11-355" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-356"><a href="#cb11-356" aria-hidden="true" tabindex="-1"></a><span class="fu">## Geometrical Interpretation of the Coefficients of a Logistic Regressor</span></span>
+<span id="cb11-357"><a href="#cb11-357" aria-hidden="true" tabindex="-1"></a>Similar to linear regression, also the coefficients of logistic</span>
+<span id="cb11-358"><a href="#cb11-358" aria-hidden="true" tabindex="-1"></a>regression have a geometrical interpretation, which is particularly interesting when treating the classifier from a purely predictive point of view. We will see that, while</span>
+<span id="cb11-359"><a href="#cb11-359" aria-hidden="true" tabindex="-1"></a>linear regression finds a «curve» that fits the data, logistic</span>
+<span id="cb11-360"><a href="#cb11-360" aria-hidden="true" tabindex="-1"></a>regression finds a hyperplane that separates the data.</span>
+<span id="cb11-361"><a href="#cb11-361" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-362"><a href="#cb11-362" aria-hidden="true" tabindex="-1"></a>Let us consider a simple example with bi-dimensional data</span>
+<span id="cb11-363"><a href="#cb11-363" aria-hidden="true" tabindex="-1"></a>$\mathbf{x} \in \mathfrak{R}^{2}$ as the one shown in the following:</span>
+<span id="cb11-364"><a href="#cb11-364" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-367"><a href="#cb11-367" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-368"><a href="#cb11-368" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb11-369"><a href="#cb11-369" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb11-370"><a href="#cb11-370" aria-hidden="true" tabindex="-1"></a>x<span class="op">=</span>np.array(<span class="bu">list</span>(np.random.normal(<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">100</span>))<span class="op">+</span><span class="bu">list</span>(np.random.normal(<span class="dv">3</span>,<span class="dv">1</span>,<span class="dv">100</span>)))</span>
+<span id="cb11-371"><a href="#cb11-371" aria-hidden="true" tabindex="-1"></a>y<span class="op">=</span>np.array(<span class="bu">list</span>(np.random.normal(<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">100</span>))<span class="op">+</span><span class="bu">list</span>(np.random.normal(<span class="dv">3</span>,<span class="dv">1</span>,<span class="dv">100</span>)))</span>
+<span id="cb11-372"><a href="#cb11-372" aria-hidden="true" tabindex="-1"></a>l<span class="op">=</span>np.array([<span class="dv">0</span>]<span class="op">*</span><span class="dv">100</span><span class="op">+</span>[<span class="dv">1</span>]<span class="op">*</span><span class="dv">100</span>)</span>
+<span id="cb11-373"><a href="#cb11-373" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">8</span>))</span>
+<span id="cb11-374"><a href="#cb11-374" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(x<span class="op">=</span>x,y<span class="op">=</span>y,hue<span class="op">=</span>l)</span>
+<span id="cb11-375"><a href="#cb11-375" aria-hidden="true" tabindex="-1"></a>plt.xlim([<span class="op">-</span><span class="dv">3</span>,<span class="dv">6</span>])</span>
+<span id="cb11-376"><a href="#cb11-376" aria-hidden="true" tabindex="-1"></a>plt.ylim([<span class="op">-</span><span class="dv">3</span>,<span class="dv">7</span>])</span>
+<span id="cb11-377"><a href="#cb11-377" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb11-378"><a href="#cb11-378" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb11-379"><a href="#cb11-379" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb11-380"><a href="#cb11-380" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-381"><a href="#cb11-381" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-382"><a href="#cb11-382" aria-hidden="true" tabindex="-1"></a>Let us assume that we fit a logistic regressor model to this data</span>
+<span id="cb11-383"><a href="#cb11-383" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-384"><a href="#cb11-384" aria-hidden="true" tabindex="-1"></a>$$P\left( y=1 | \mathbf{x} \right) = \frac{1}{1 + e^{- {(\beta}_{0} + \beta_{1}x_{1} + \beta_{2}x_{2})}}$$</span>
+<span id="cb11-385"><a href="#cb11-385" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-386"><a href="#cb11-386" aria-hidden="true" tabindex="-1"></a>and find the following values for the parameters:</span>
+<span id="cb11-387"><a href="#cb11-387" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-388"><a href="#cb11-388" aria-hidden="true" tabindex="-1"></a>$$\left<span class="sc">\{</span> \begin{matrix}</span>
+<span id="cb11-389"><a href="#cb11-389" aria-hidden="true" tabindex="-1"></a>\beta_{0} = - 3.47 <span class="sc">\\</span></span>
+<span id="cb11-390"><a href="#cb11-390" aria-hidden="true" tabindex="-1"></a>\beta_{1} = 1.17 <span class="sc">\\</span></span>
+<span id="cb11-391"><a href="#cb11-391" aria-hidden="true" tabindex="-1"></a>\beta_{2} = 1.43 <span class="sc">\\</span></span>
+<span id="cb11-392"><a href="#cb11-392" aria-hidden="true" tabindex="-1"></a>\end{matrix} \right.\ $$</span>
+<span id="cb11-393"><a href="#cb11-393" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-394"><a href="#cb11-394" aria-hidden="true" tabindex="-1"></a>We know that these parameters allow to find a probability value according to the formula above.</span>
+<span id="cb11-395"><a href="#cb11-395" aria-hidden="true" tabindex="-1"></a>We can use these values to **classify the observations** $\mathbf{x}$. In practice, a reasonable criterion to classify observations would be:</span>
+<span id="cb11-396"><a href="#cb11-396" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-397"><a href="#cb11-397" aria-hidden="true" tabindex="-1"></a>$$\hat y = \begin{cases}1 &amp; \text{if } P(y=1|\mathbf{x}) \geq 0.5<span class="sc">\\</span>0 &amp; \text{otherwise}\end{cases}$$</span>
+<span id="cb11-398"><a href="#cb11-398" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-399"><a href="#cb11-399" aria-hidden="true" tabindex="-1"></a>This makes sense as we are assigning the observations to the group for which the posterior probability $P(y|\mathbf{x})$ is higher. </span>
+<span id="cb11-400"><a href="#cb11-400" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-401"><a href="#cb11-401" aria-hidden="true" tabindex="-1"></a>To understand how the data is classified, we can look at those points in</span>
+<span id="cb11-402"><a href="#cb11-402" aria-hidden="true" tabindex="-1"></a>which the classifier is uncertain, which is often called **the decision boundary**, i.e.,</span>
+<span id="cb11-403"><a href="#cb11-403" aria-hidden="true" tabindex="-1"></a>those points in which $P\left( y=1 | \mathbf{x} \right) = 0.5$.</span>
+<span id="cb11-404"><a href="#cb11-404" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-405"><a href="#cb11-405" aria-hidden="true" tabindex="-1"></a>We note that:</span>
+<span id="cb11-406"><a href="#cb11-406" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-407"><a href="#cb11-407" aria-hidden="true" tabindex="-1"></a>$$P\left(y=1 | \mathbf{x} \right) = 0.5 \Leftrightarrow e^{- (\beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2})} = 1 \Leftrightarrow 0 = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2}$$</span>
+<span id="cb11-408"><a href="#cb11-408" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-409"><a href="#cb11-409" aria-hidden="true" tabindex="-1"></a>This last equation is the equation of a line (in the form</span>
+<span id="cb11-410"><a href="#cb11-410" aria-hidden="true" tabindex="-1"></a>$ax + by + c = 0$). We can see it in explicit form:</span>
+<span id="cb11-411"><a href="#cb11-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-412"><a href="#cb11-412" aria-hidden="true" tabindex="-1"></a>$$x_{2} = - \frac{\beta_{1}}{\beta_{2}}x_{1} - \frac{\beta_{0}}{\beta_{2}}$$</span>
+<span id="cb11-413"><a href="#cb11-413" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-414"><a href="#cb11-414" aria-hidden="true" tabindex="-1"></a>So, we have found a line which has a</span>
+<span id="cb11-415"><a href="#cb11-415" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-416"><a href="#cb11-416" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Angular coefficient equal to $- \frac{\beta_{1}}{\beta_{2}}$;</span>
+<span id="cb11-417"><a href="#cb11-417" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-418"><a href="#cb11-418" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Intercept equal to $- \frac{\beta_{0}}{\beta_{2}}$;</span>
+<span id="cb11-419"><a href="#cb11-419" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-420"><a href="#cb11-420" aria-hidden="true" tabindex="-1"></a>If we plot this line, we obtain the **decision boundary** which</span>
+<span id="cb11-421"><a href="#cb11-421" aria-hidden="true" tabindex="-1"></a>separates the elements from the two classes:</span>
+<span id="cb11-422"><a href="#cb11-422" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-425"><a href="#cb11-425" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb11-426"><a href="#cb11-426" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb11-427"><a href="#cb11-427" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LogisticRegression</span>
+<span id="cb11-428"><a href="#cb11-428" aria-hidden="true" tabindex="-1"></a>lr <span class="op">=</span> LogisticRegression()</span>
+<span id="cb11-429"><a href="#cb11-429" aria-hidden="true" tabindex="-1"></a>lr.fit(np.vstack([x,y]).T,l)</span>
+<span id="cb11-430"><a href="#cb11-430" aria-hidden="true" tabindex="-1"></a>xx <span class="op">=</span> np.linspace(<span class="op">-</span><span class="dv">3</span>,<span class="dv">6</span>)</span>
+<span id="cb11-431"><a href="#cb11-431" aria-hidden="true" tabindex="-1"></a>yy <span class="op">=</span> <span class="op">-</span>lr.coef_[<span class="dv">0</span>][<span class="dv">0</span>]<span class="op">/</span>lr.coef_[<span class="dv">0</span>][<span class="dv">1</span>]<span class="op">*</span>xx<span class="op">-</span>lr.intercept_<span class="op">/</span>lr.coef_[<span class="dv">0</span>][<span class="dv">1</span>]</span>
+<span id="cb11-432"><a href="#cb11-432" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">8</span>))</span>
+<span id="cb11-433"><a href="#cb11-433" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(x<span class="op">=</span>x,y<span class="op">=</span>y,hue<span class="op">=</span>l)</span>
+<span id="cb11-434"><a href="#cb11-434" aria-hidden="true" tabindex="-1"></a>plt.xlim([<span class="op">-</span><span class="dv">3</span>,<span class="dv">6</span>])</span>
+<span id="cb11-435"><a href="#cb11-435" aria-hidden="true" tabindex="-1"></a>plt.ylim([<span class="op">-</span><span class="dv">3</span>,<span class="dv">7</span>])</span>
+<span id="cb11-436"><a href="#cb11-436" aria-hidden="true" tabindex="-1"></a>plt.plot(xx,yy,<span class="st">'r'</span>, label<span class="op">=</span><span class="st">'decision boundary'</span>)</span>
+<span id="cb11-437"><a href="#cb11-437" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb11-438"><a href="#cb11-438" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb11-439"><a href="#cb11-439" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb11-440"><a href="#cb11-440" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb11-441"><a href="#cb11-441" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-442"><a href="#cb11-442" aria-hidden="true" tabindex="-1"></a>As can be seen, the decision boundary found by a logistic regressor is a</span>
+<span id="cb11-443"><a href="#cb11-443" aria-hidden="true" tabindex="-1"></a>line. This is because **a logistic regressor is a linear classifier**,</span>
+<span id="cb11-444"><a href="#cb11-444" aria-hidden="true" tabindex="-1"></a>despite the logistic function is not linear!</span>
+<span id="cb11-445"><a href="#cb11-445" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-446"><a href="#cb11-446" aria-hidden="true" tabindex="-1"></a><span class="fu">## Exercises</span></span>
+<span id="cb11-447"><a href="#cb11-447" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-448"><a href="#cb11-448" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Interaction, read aloud.** Fit <span class="in">`Fare ~ Age * C(Pclass)`</span> on the Titanic data. Write</span>
+<span id="cb11-449"><a href="#cb11-449" aria-hidden="true" tabindex="-1"></a>   one sentence saying what the interaction term means, without using the word</span>
+<span id="cb11-450"><a href="#cb11-450" aria-hidden="true" tabindex="-1"></a>   "interaction".</span>
+<span id="cb11-451"><a href="#cb11-451" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**When an interaction is not needed.** Fit the same model without the interaction and</span>
+<span id="cb11-452"><a href="#cb11-452" aria-hidden="true" tabindex="-1"></a>   compare. Does the interaction earn its parameters? Justify the answer with something</span>
+<span id="cb11-453"><a href="#cb11-453" aria-hidden="true" tabindex="-1"></a>   other than the p-value.</span>
+<span id="cb11-454"><a href="#cb11-454" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Polynomial degree.** Fit polynomials of degree 1 to 6 to a relationship of your</span>
+<span id="cb11-455"><a href="#cb11-455" aria-hidden="true" tabindex="-1"></a>   choice. Plot each one. Which degree would you defend to a colleague, and on what</span>
+<span id="cb11-456"><a href="#cb11-456" aria-hidden="true" tabindex="-1"></a>   grounds — given that this chapter has no test set?</span>
+<span id="cb11-457"><a href="#cb11-457" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Multinomial coefficients.** Fit a multinomial logistic regression of <span class="in">`Pclass`</span> on</span>
+<span id="cb11-458"><a href="#cb11-458" aria-hidden="true" tabindex="-1"></a>   <span class="in">`Fare`</span> and <span class="in">`Age`</span>. Interpret one coefficient with respect to the baseline category, then</span>
+<span id="cb11-459"><a href="#cb11-459" aria-hidden="true" tabindex="-1"></a>   refit with a different baseline and confirm that the conclusions do not change.</span>
+<span id="cb11-460"><a href="#cb11-460" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-461"><a href="#cb11-461" aria-hidden="true" tabindex="-1"></a><span class="fu">## References</span></span>
+<span id="cb11-462"><a href="#cb11-462" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-463"><a href="#cb11-463" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>James, Witten, Hastie, Tibshirani, Taylor. *An Introduction to Statistical Learning</span>
+<span id="cb11-464"><a href="#cb11-464" aria-hidden="true" tabindex="-1"></a>  with Applications in Python*, sections 3.3 (interactions and polynomial terms) and 4.3</span>
+<span id="cb11-465"><a href="#cb11-465" aria-hidden="true" tabindex="-1"></a>  (multinomial logistic regression).</span>
+<span id="cb11-466"><a href="#cb11-466" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Heumann, Schomaker, Shalabh. *Introduction to Statistics and Data Analysis*, chapter 11.</span>
+<span id="cb11-467"><a href="#cb11-467" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`statsmodels`</span> formula API documentation, for the <span class="in">`*`</span> and <span class="in">`:`</span> operators.</span>
+</code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Antonino Furnari · Department of Mathematics and Computer Science, University of Catania</p>
+</div>   
+    <div class="nav-footer-center">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item">
+    <a class="nav-link" href="../credits.html">
+<p>Credits and data sources</p>
+</a>
+  </li>  
+</ul>
+    </div>
+    <div class="nav-footer-right">
+<p>Built with <a href="https://quarto.org">Quarto</a></p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
+</body></html>
